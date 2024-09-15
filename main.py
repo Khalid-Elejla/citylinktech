@@ -1,4 +1,12 @@
 import streamlit as st
+
+# Set up the Streamlit page
+st.set_page_config(
+    page_title="City Link",
+    page_icon="logo.png",
+    layout="wide",
+)
+
 from control_center.map import map_page
 from control_center.alerts import alerts_page
 from control_center.dashboard import dashboard_page
@@ -7,12 +15,6 @@ from tools.search import search_page
 from tools.history import history_page
 from streamlit_extras.app_logo import add_logo
 
-# Set up the Streamlit page
-st.set_page_config(
-    page_title="City Link",
-    page_icon="logo.png",
-    layout="wide",
-)
 
 
 # Display the floating logo
@@ -35,7 +37,6 @@ st.set_page_config(
 #         </style>
 #         """, unsafe_allow_html=True)
 
-import streamlit as st
 
 
 
