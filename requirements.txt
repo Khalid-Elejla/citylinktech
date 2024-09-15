@@ -13,3 +13,4 @@ streamlit-folium
 ultralytics
 streamlit_extras
 extra-streamlit-components
+pytubefix
