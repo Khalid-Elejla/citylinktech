@@ -3,7 +3,7 @@ import tempfile
 import json
 import cv2  # OpenCV for capturing live video
 from .detect_parking import run_parking_detection
-from pytube import YouTube  # Import pytube to handle YouTube streams
+from pytubefix import YouTube  # Import pytube to handle YouTube streams
 
 DEMO_VIDEO = 'new.mp4'
 PARKING_SPOTS_FILE = 'apps/parking/parking_spots.json'
