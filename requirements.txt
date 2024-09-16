@@ -14,3 +14,4 @@ ultralytics
 streamlit_extras
 extra-streamlit-components
 pytubefix
+yt-dlp

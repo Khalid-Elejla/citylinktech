@@ -93,7 +93,7 @@ def run_parking_detection(video_source: Union[str, int], model_path: str, parkin
     
     # New variables for frame skipping
     frame_count = 0
-    process_every_n_frames = 100  # Process every 5th frame, adjust as needed
+    process_every_n_frames = 300  # Process every 5th frame, adjust as needed
     last_bboxes = []  # Store the last processed bounding boxes
 
     while True:
@@ -105,7 +105,7 @@ def run_parking_detection(video_source: Union[str, int], model_path: str, parkin
         frame_count += 1
 
         # Process only every nth frame
-        if frame_count % process_every_n_frames == 0:
+        if frame_count == 1 or frame_count % process_every_n_frames == 0:
             results = model.track(frame)
             if results:
                 last_bboxes = [BBox(

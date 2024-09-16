@@ -3,16 +3,34 @@ import tempfile
 import json
 import cv2  # OpenCV for capturing live video
 from .detect_parking import run_parking_detection
-from pytubefix import YouTube  # Import pytube to handle YouTube streams
+import yt_dlp  # Import yt-dlp to handle YouTube streams
 
 DEMO_VIDEO = 'new.mp4'
 PARKING_SPOTS_FILE = 'apps/parking/parking_spots.json'
 
 def get_youtube_stream_url(youtube_url):
-    """Fetch the YouTube stream URL using pytube."""
-    yt = YouTube(youtube_url)
-    stream = yt.streams.filter(progressive=True, file_extension='mp4').first()
-    return stream.url
+    """Fetch the YouTube stream URL using yt-dlp."""
+    ydl_opts = {
+        'format': 'best[height<=480]',  # 'best' will automatically choose the best available format for normal videos and live streams
+        'noplaylist': True,
+        'quiet': True
+    }
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(youtube_url, download=False)
+        
+        # Check if this is a live stream or a regular video
+        if 'is_live' in info_dict and info_dict['is_live']:
+            stream_url = info_dict.get('url', None)  # For live streams
+        else:
+            # For normal videos, we return the best available stream
+            formats = info_dict.get('formats', [])
+            if formats:
+                stream_url = formats[-1].get('url')  # The best available format at the end of the list
+            else:
+                raise Exception("No stream URL found for the video.")
+    
+    return stream_url
 
 def load_parking_spot_data(video_key):
     """Load the parking spots and video source for the selected parking spot."""
@@ -35,17 +53,14 @@ def parking_page():
     parking_spot_keys = load_parking_spot_keys()
     selected_spot = st.selectbox('Select Parking Spot', parking_spot_keys)
 
-
     video_type, video_source, parking_spots = load_parking_spot_data(selected_spot)
 
-
-    if video_type=="youtube_stream":
+    if video_type == "youtube_stream":
         try:
             video_source = get_youtube_stream_url(video_source)
         except Exception as e:
             st.error(f"Error fetching YouTube stream: {e}")
             return
-        
 
     with st.expander("info"):
         st.write(selected_spot, video_type, video_source, parking_spots)
@@ -57,16 +72,6 @@ def parking_page():
     
     # Handle file uploader
     video_file_buffer = st.sidebar.file_uploader("Upload a video", type=["mp4", "mov", 'avi', 'asf', 'm4v'])
-    
-    # Determine the video source based on user selection
-    # if use_webcam:
-    #     video_source = 0  # Webcam video source (0 is typically the default camera)
-    # elif video_file_buffer:
-    #     tfflie = tempfile.NamedTemporaryFile(delete=False)
-    #     tfflie.write(video_file_buffer.read())
-    #     video_source = tfflie.name  # Use uploaded video as source
-    # else:
-    #     video_source, parking_spots = load_parking_spot_data(selected_spot)  # Use selected parking spot video
     
     stop_button = st.sidebar.button('Stop Processing')
     if stop_button:
@@ -90,6 +95,8 @@ def parking_page():
         show_boxes=show_boxes,
         counter_display=counter_display
     )
+
+
 
 
 # import streamlit as st
