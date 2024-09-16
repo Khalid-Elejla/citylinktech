@@ -13,7 +13,8 @@ def get_youtube_stream_url(youtube_url):
     ydl_opts = {
         'format': 'best[height<=480]',  # 'best' will automatically choose the best available format for normal videos and live streams
         'noplaylist': True,
-        'quiet': True
+        'quiet': True,
+        'cookiefile': 'cookies.txt',  # Path to your cookies file
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
