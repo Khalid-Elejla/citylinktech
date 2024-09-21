@@ -190,6 +190,52 @@ def create_map(df, coordinates):
 
 # Main function for the history page
 def map_page():
+    st.markdown("""
+        <style>
+        div[data-testid="stSidebarCollapseButton"] {
+            padding: 2px;  
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <style>
+        /* Reduce padding and margin for the sidebar header */
+        div[data-testid="stSidebarHeader"] {
+            padding: 10px; /* Adjust as needed */
+            margin: 0;     /* Adjust as needed */
+        }
+
+        /* Reduce padding around the logo image */
+        div[data-testid="stSidebarHeader"] img[data-testid="stLogo"] {
+            width: 100px;  /* Adjust width as needed */
+            height: auto;  /* Maintain aspect ratio */
+            margin: 0;     /* Adjust margin if needed */
+        }
+
+        /* Reduce padding around the sidebar collapse button */
+        div[data-testid="stSidebarCollapseButton"] {
+            padding: 2px;  /* Adjust as needed */
+            margin: 0;     /* Adjust as needed */
+        }
+
+        /* Adjust button padding */
+        div[data-testid="stSidebarCollapseButton"] button {
+            padding: 2px;  /* Adjust as needed */
+        }
+            
+        /* Adjust button padding */
+        div[data-testid="stAppViewBlockContainer"]
+        {
+            padding-top: 30px; /* Adjust as needed */
+            margin: 0;     /* Adjust as needed */
+        }
+                
+    
+        </style>
+        
+        """, unsafe_allow_html=True)
+
 
     st.markdown(
         """

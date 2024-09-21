@@ -11,12 +11,13 @@ from control_center.map import map_page
 from control_center.alerts import alerts_page
 from control_center.dashboard import dashboard_page
 from apps.parking.parking import parking_page
+from apps.gate.gate import gate_page
 from tools.search import search_page
 from tools.history import history_page
-from streamlit_extras.app_logo import add_logo
 
 
-
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 # Display the floating logo
 # st.markdown('<img src="logo.png" class="floating-logo">', unsafe_allow_html=True)
 
@@ -40,43 +41,43 @@ from streamlit_extras.app_logo import add_logo
 
 
 
-st.markdown("""
-    <style>
-    /* Reduce padding and margin for the sidebar header */
-    div[data-testid="stSidebarHeader"] {
-        padding: 10px; /* Adjust as needed */
-        margin: 0;     /* Adjust as needed */
-    }
+# st.markdown("""
+#     <style>
+#     /* Reduce padding and margin for the sidebar header */
+#     div[data-testid="stSidebarHeader"] {
+#         padding: 10px; /* Adjust as needed */
+#         margin: 0;     /* Adjust as needed */
+#     }
 
-    /* Reduce padding around the logo image */
-    div[data-testid="stSidebarHeader"] img[data-testid="stLogo"] {
-        width: 100px;  /* Adjust width as needed */
-        height: auto;  /* Maintain aspect ratio */
-        margin: 0;     /* Adjust margin if needed */
-    }
+#     /* Reduce padding around the logo image */
+#     div[data-testid="stSidebarHeader"] img[data-testid="stLogo"] {
+#         width: 100px;  /* Adjust width as needed */
+#         height: auto;  /* Maintain aspect ratio */
+#         margin: 0;     /* Adjust margin if needed */
+#     }
 
-    /* Reduce padding around the sidebar collapse button */
-    div[data-testid="stSidebarCollapseButton"] {
-        padding: 2px;  /* Adjust as needed */
-        margin: 0;     /* Adjust as needed */
-    }
+#     /* Reduce padding around the sidebar collapse button */
+#     div[data-testid="stSidebarCollapseButton"] {
+#         padding: 2px;  /* Adjust as needed */
+#         margin: 0;     /* Adjust as needed */
+#     }
 
-    /* Adjust button padding */
-    div[data-testid="stSidebarCollapseButton"] button {
-        padding: 2px;  /* Adjust as needed */
-    }
+#     /* Adjust button padding */
+#     div[data-testid="stSidebarCollapseButton"] button {
+#         padding: 2px;  /* Adjust as needed */
+#     }
         
-    /* Adjust button padding */
-    div[data-testid="stAppViewBlockContainer"]
-    {
-        padding-top: 30px; /* Adjust as needed */
-        margin: 0;     /* Adjust as needed */
-    }
+#     /* Adjust button padding */
+#     div[data-testid="stAppViewBlockContainer"]
+#     {
+#         padding-top: 30px; /* Adjust as needed */
+#         margin: 0;     /* Adjust as needed */
+#     }
             
   
-    </style>
+#     </style>
     
-    """, unsafe_allow_html=True)
+#     """, unsafe_allow_html=True)
 
 
 # # Inject the custom CSS to control the logo size
@@ -101,16 +102,15 @@ st.logo("logo.png")
 # )
 
 
-st.markdown("""
-    <style>
-    div[data-testid="stSidebarCollapseButton"] {
-        padding: 2px;  /* Adjust this value as needed */
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# st.markdown("""
+#     <style>
+#     div[data-testid="stSidebarCollapseButton"] {
+#         padding: 2px;  /* Adjust this value as needed */
+#     }
+#     </style>
+#     """, unsafe_allow_html=True)
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+
 
 def login():
     if st.button("Log in"):
@@ -131,6 +131,9 @@ alerts = st.Page(alerts_page, title="Alerts", icon=":material/notification_impor
 dashboard = st.Page(dashboard_page, title="Dashboard", icon=":material/dashboard:")
 
 parking = st.Page(parking_page, title="Parking", icon=":material/local_taxi:")
+# gate = st.Page(gate_page, title="Gates", icon=":material/gate:")
+gate = st.Page(gate_page, title="Gates", icon=":material/speed_camera:")
+
 
 search = st.Page(search_page, title="Search", icon=":material/search:")
 history = st.Page(history_page, title="History", icon=":material/history:")
@@ -153,7 +156,7 @@ if st.session_state.logged_in:
         {
             "Account": [logout_page],
             "Control Center": [map, alerts, dashboard],
-            "apps": [parking],
+            "apps": [parking, gate],
             "Tools": [search, history],
         }
     )
