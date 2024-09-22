@@ -7,6 +7,7 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from utils.route_utils import construct_osrm_url, get_trip_data
 from folium import PolyLine
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 # Load data from Excel
 def load_data(file_path):
@@ -441,7 +442,32 @@ def map_page():
 
 
         # Display the DataFrame
-        st.dataframe(df, use_container_width=True)
+        #st.dataframe(df, use_container_width=True)
+     
+
+    # Specify the column you want to filter on (e.g., 'Age')
+    filter_column = 'Type*'  # Change this to the desired column name
+
+
+        # Create Grid Options Builder
+    # Create Grid Options Builder
+    gb = GridOptionsBuilder.from_dataframe(df)
+
+    # Enable filtering only for the specified column and hide other column options
+    for col in df.columns:
+        if col == filter_column:
+            gb.configure_column(col, filter=True,menuTabs=['filterMenuTab'])# suppressMenu=False)
+        else:
+            gb.configure_column(col, suppressMenu=True)  # Suppress menu for other columns
+
+            
+
+    # Build grid options and suppress the column selection panel
+    gridOptions = gb.build()
+
+    # Display AgGrid with custom column settings
+    AgGrid(df, gridOptions=gridOptions, use_container_width=True)
+
 
 
     # Apply the correct button colors after rendering the buttons

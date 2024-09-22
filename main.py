@@ -131,22 +131,21 @@ alerts = st.Page(alerts_page, title="Alerts", icon=":material/notification_impor
 dashboard = st.Page(dashboard_page, title="Dashboard", icon=":material/dashboard:")
 
 parking = st.Page(parking_page, title="Parking", icon=":material/local_taxi:")
-# gate = st.Page(gate_page, title="Gates", icon=":material/gate:")
 gate = st.Page(gate_page, title="Gates", icon=":material/speed_camera:")
 
 
 search = st.Page(search_page, title="Search", icon=":material/search:")
 history = st.Page(history_page, title="History", icon=":material/history:")
 
-# Define your pages
-def navigate_to_page(page_name):
-    st.session_state.page = page_name
-    st.switch_page(page_name)
+# # Define your pages
+# def navigate_to_page(page_name):
+#     st.session_state.page = page_name
+#     st.switch_page(page_name)
 
-if "page" not in st.session_state:
-    st.session_state.page = "map"
-if st.session_state.page == "alerts":
-    navigate_to_page(alerts)
+# if "page" not in st.session_state:
+#     st.session_state.page = "map"
+# if st.session_state.page == "alerts":
+#     navigate_to_page(alerts)
 
 
 
@@ -164,93 +163,3 @@ else:
     pg = st.navigation([login_page])
 
 pg.run()
-
-#########################################
-# import streamlit as st
-# from control_center.map import map_page
-# from control_center.alerts import alerts_page
-# from control_center.dashboard import dashboard_page
-# from apps.parking import parking_page
-# from tools.search import search_page
-# from tools.history import history_page
-
-
-
-# # Set up the Streamlit page
-# st.set_page_config(
-#     page_title="City Link",
-#     page_icon=":world_globe:",
-#     layout="wide",
-# )
-
-# if "logged_in" not in st.session_state:
-#     st.session_state.logged_in = False
-
-# def login():
-#     if st.button("Log in"):
-#         st.session_state.logged_in = True
-#         st.rerun()
-
-# def logout():
-#     if st.button("Log out"):
-#         st.session_state.logged_in = False
-#         st.rerun()
-
-
-# login_page = st.Page(login, title="Log in", icon=":material/login:")
-# logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
-
-# map = st.Page(map_page, title="Map", icon=":material/map:", default=True)
-# alerts = st.Page(alerts_page, title="Alerts", icon=":material/notification_important:")#,default=True)
-# dashboard = st.Page(dashboard_page, title="Dashboard", icon=":material/dashboard:")
-
-# parking = st.Page(parking_page, title="Parking", icon=":material/local_taxi:")
-
-# search = st.Page(search_page, title="Search", icon=":material/search:")
-# history = st.Page(history_page, title="History", icon=":material/history:")
-
-# ###################################################################################
-# # if "current_page" not in st.session_state:
-# #     st.session_state.current_page = "Dashboard"  # Set your default page here
-
-# pages = {
-#     "Login": login,
-#     "Logout": logout,
-#     "Map": map_page,
-#     "Alerts": alerts_page,
-#     "Dashboard": dashboard_page,
-#     "Parking": parking_page,
-#     "Search": search_page,
-#     "History": history_page,
-# }
-
-
-# if "page_name" not in st.session_state:
-#     st.session_state.page_name = "Dashboard"  # Set default page
-
-# if st.session_state.page_name == "Alerts":
-#     print("AAAAAAAAAAAAAAAAAAAAAAAAAA")
-#     st.switch_page(alerts)
-#     st.session_state.page_name == ""
-#     # pg.run()
-
-# # # Navigation logic
-# # if st.session_state.logged_in:
-# #     if st.session_state.current_page in pages:
-# #         pages[st.session_state.current_page]()
-# #     else:
-# #         st.error("Page not found.")
-# ###################################################################################
-# if st.session_state.logged_in:
-#     pg = st.navigation(
-#         {
-#             "Account": [logout_page],
-#             "Control Center": [map, alerts, dashboard],
-#             "apps": [parking],
-#             "Tools": [search, history],
-#         }
-#     )
-# else:
-#     pg = st.navigation([login_page])
-
-# pg.run()

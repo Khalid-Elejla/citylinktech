@@ -69,11 +69,11 @@ def gate_page():
             
             plate_image.image(clipped_license_plate, channels="RGB", use_column_width=True)
             
-            plate_text.write(f'''#### {license_plate_text}''',use_column_width=True)
+            plate_text.write(f'''#### {license_plate_text}''')
 
             status = check_vehicle_status(cars_df, license_plate_text)
 
-            vehicle_status.write(f'''#### {status}''',use_column_width=True)
+            vehicle_status.write(f'''#### {status}''')
 
 
         # else:
