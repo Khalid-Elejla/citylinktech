@@ -1,154 +1,61 @@
 import streamlit as st
 
-# Set up the Streamlit page
+# Local imports
+from control_center.map.map import map_page
+from control_center.alerts.alerts import alerts_page
+from control_center.dashboard.dashboard import dashboard_page
+from apps.parking.parking import parking_page
+from apps.gate.gate import gate_page
+from tools.search import search_page
+from tools.history import history_page
+
+# Configure page
 st.set_page_config(
     page_title="City Link",
     page_icon="logo.png",
     layout="wide",
 )
 
-from control_center.map import map_page
-from control_center.alerts import alerts_page
-from control_center.dashboard import dashboard_page
-from apps.parking.parking import parking_page
-from apps.gate.gate import gate_page
-from tools.search import search_page
-from tools.history import history_page
-
-
+# Initialize session state for login status
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-# Display the floating logo
-# st.markdown('<img src="logo.png" class="floating-logo">', unsafe_allow_html=True)
 
-# st.markdown("""
-#         <style>
-#                .css-18e3th9 {
-#                     padding-top: 0rem;
-#                     padding-bottom: 10rem;
-#                     padding-left: 5rem;
-#                     padding-right: 5rem;
-#                 }
-#                .css-1d391kg {
-#                     padding-top: 3.5rem;
-#                     padding-right: 1rem;
-#                     padding-bottom: 3.5rem;
-#                     padding-left: 1rem;
-#                 }
-#         </style>
-#         """, unsafe_allow_html=True)
-
-
-
-
-# st.markdown("""
-#     <style>
-#     /* Reduce padding and margin for the sidebar header */
-#     div[data-testid="stSidebarHeader"] {
-#         padding: 10px; /* Adjust as needed */
-#         margin: 0;     /* Adjust as needed */
-#     }
-
-#     /* Reduce padding around the logo image */
-#     div[data-testid="stSidebarHeader"] img[data-testid="stLogo"] {
-#         width: 100px;  /* Adjust width as needed */
-#         height: auto;  /* Maintain aspect ratio */
-#         margin: 0;     /* Adjust margin if needed */
-#     }
-
-#     /* Reduce padding around the sidebar collapse button */
-#     div[data-testid="stSidebarCollapseButton"] {
-#         padding: 2px;  /* Adjust as needed */
-#         margin: 0;     /* Adjust as needed */
-#     }
-
-#     /* Adjust button padding */
-#     div[data-testid="stSidebarCollapseButton"] button {
-#         padding: 2px;  /* Adjust as needed */
-#     }
-        
-#     /* Adjust button padding */
-#     div[data-testid="stAppViewBlockContainer"]
-#     {
-#         padding-top: 30px; /* Adjust as needed */
-#         margin: 0;     /* Adjust as needed */
-#     }
-            
-  
-#     </style>
-    
-#     """, unsafe_allow_html=True)
-
-
-# # Inject the custom CSS to control the logo size
-# st.markdown("""
-#     <style>
-#     img[alt="Logo"] {
-#         width: 90px;  /* Adjust size as needed */
-#         height: 80px;  /* Maintain aspect ratio */
-#         padding-bottom: 10px;
-
-#     }
-#     </style>
-#     """, unsafe_allow_html=True)
-
-# Display the logo using st.logo or st.image
+# Display logo
 st.logo("logo.png")
 
-# st.logo(
-#     "cropped-logo-10-300x131.png",
-#     link="https://streamlit.io/gallery",
-#     icon_image="logom.jpeg",
-# )
 
-
-# st.markdown("""
-#     <style>
-#     div[data-testid="stSidebarCollapseButton"] {
-#         padding: 2px;  /* Adjust this value as needed */
-#     }
-#     </style>
-#     """, unsafe_allow_html=True)
-
-
-
+# Login function
 def login():
     if st.button("Log in"):
         st.session_state.logged_in = True
         st.rerun()
 
+
+# Logout function
 def logout():
     if st.button("Log out"):
         st.session_state.logged_in = False
         st.rerun()
 
 
+# Login and logout pages
 login_page = st.Page(login, title="Log in", icon=":material/login:")
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 
+# Control center Pages
 map = st.Page(map_page, title="Map", icon=":material/map:", default=True)
-alerts = st.Page(alerts_page, title="Alerts", icon=":material/notification_important:")#,default=True)
+alerts = st.Page(alerts_page, title="Alerts", icon=":material/notification_important:")
 dashboard = st.Page(dashboard_page, title="Dashboard", icon=":material/dashboard:")
 
+# Apps Pages
 parking = st.Page(parking_page, title="Parking", icon=":material/local_taxi:")
 gate = st.Page(gate_page, title="Gates", icon=":material/speed_camera:")
 
-
+# Tools Pages
 search = st.Page(search_page, title="Search", icon=":material/search:")
 history = st.Page(history_page, title="History", icon=":material/history:")
 
-# # Define your pages
-# def navigate_to_page(page_name):
-#     st.session_state.page = page_name
-#     st.switch_page(page_name)
-
-# if "page" not in st.session_state:
-#     st.session_state.page = "map"
-# if st.session_state.page == "alerts":
-#     navigate_to_page(alerts)
-
-
-
+# Navigate between pages
 if st.session_state.logged_in:
 
     pg = st.navigation(

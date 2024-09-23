@@ -1,104 +1,17 @@
 import streamlit as st
-import folium
 import pandas as pd
-from streamlit_folium import folium_static, st_folium
-from utils.route_utils import construct_osrm_url, get_trip_data
-import os
-from folium import Icon, PolyLine
-from datetime import datetime, time
+import streamlit.components.v1 as components
+import folium
+from streamlit_folium import st_folium, folium_static
+from datetime import datetime
 from matplotlib import pyplot as plt
-import numpy as np
+from utils.route_utils import construct_osrm_url, get_trip_data
+from folium import PolyLine
+from st_aggrid import AgGrid, GridOptionsBuilder
 
-
-
-# KPI calculations for Emergency data
-# def calculate_emergency_kpis(df):
-#     df_copy = df.copy()
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Satisfaction']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
-
-#     today = datetime.today().date()
-
-#     # Helper function to parse time
-#     def parse_time(t):
-#         try:
-#             return pd.to_datetime(t, format='%H:%M:%S').time()
-#         except ValueError:
-#             try:
-#                 return pd.to_datetime(t, format='%H:%M').time()
-#             except ValueError:
-#                 raise ValueError(f"Time format for '{t}' is incorrect")
-
-#     # Ensure 'Open Time' and 'Closure Time' are in time format
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-
-#     # Fix serialization issue: convert datetime columns to strings
-#     df_copy['Open Time'] = df_copy['Open Time'].astype(str)
-#     df_copy['Closure Time'] = df_copy['Closure Time'].astype(str)
-
-#     emergency_closure_time = (pd.to_datetime(df_copy['Closure Time']) - pd.to_datetime(df_copy['Open Time'])).mean()
-#     emergency_closure_time_str = f"{emergency_closure_time.days} days {emergency_closure_time.seconds // 3600} hrs {(emergency_closure_time.seconds % 3600) // 60} mins"
-
-#     closure_percentage = (df_copy['Status'] == 'Closed').mean() * 100
-#     satisfaction_rate = df_copy['Satisfaction'].str.lower().apply(lambda x: x == 'satisfied').mean() * 100
-#     df_copy['Location'] = df_copy[['Latitude', 'Longitude']].apply(lambda x: f"{x['Latitude']},{x['Longitude']}", axis=1)
-#     emergency_numbers = df_copy['Location'].nunique()
-
-#     expected_emergency_alarm = "To be calculated based on relationships"
-
-#     return {
-#         "Closure Percentage": closure_percentage,
-#         "Emergency Closure Time": emergency_closure_time_str,
-#         "Satisfaction Rate": satisfaction_rate,
-#         "Emergency Numbers": emergency_numbers,
-#         "Expected Emergency Alarm": expected_emergency_alarm
-#     }
-
-# KPI calculations for Workforce data
-# def calculate_workforce_kpis(df):
-#     df_copy = df.copy()
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Evaluation', 'Complain Today']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
-
-#     today = datetime.today().date()
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-
-#     # Fix serialization issue: convert datetime columns to strings
-#     df_copy['Open Time'] = df_copy['Open Time'].astype(str)
-#     df_copy['Closure Time'] = df_copy['Closure Time'].astype(str)
-
-#     working_hours = (pd.to_datetime(df_copy['Closure Time']) - pd.to_datetime(df_copy['Open Time'])).mean()
-#     working_hours_str = f"{working_hours.days} days {working_hours.seconds // 3600} hours {(working_hours.seconds % 3600) // 60} min"
-
-#     total_operations = len(df_copy)
-#     active_operations = (df_copy['Status'] == 'Active').sum()
-#     operation_percentage = (active_operations / total_operations) * 100
-
-#     evaluation_rate = df_copy['Evaluation'].sum() / total_operations if total_operations > 0 else 0
-#     complain_numbers = df_copy['Complain Today'].sum()
-
-#     operation_counts = df_copy['Operation'].value_counts()
-#     fig, ax = plt.subplots(figsize=(6, 6))
-#     ax.pie(operation_counts, labels=operation_counts.index, autopct='%1.1f%%', startangle=90, textprops={'color': 'black'})
-#     ax.axis('equal')
-#     plt.title('Operations Status Distribution')
-
-#     return {
-#         "Operation Percentage": operation_percentage,
-#         "Working Hours": working_hours_str,
-#         "Evaluation Rate": evaluation_rate,
-#         "Complain Numbers": complain_numbers,
-#         "Expected Complaints Alarm": "To be calculated based on relationships",
-#         "fig": fig
-#     }
+# Load data from Excel
+def load_data(file_path):
+    return pd.read_excel(file_path, sheet_name=None)
 
 def calculate_emergency_kpis(df):
     # Strip trailing '*' from column names
@@ -237,49 +150,16 @@ def calculate_workforce_kpis(df):
     }
 
 
-# Load data from Excel
-def load_data(file_path):
-    return pd.read_excel(file_path, sheet_name=None)
 
 
-def calculate_zoom_level(lat_min, lat_max, lon_min, lon_max, map_width=1000, map_height=800):
-        TILE_SIZE = 256
-        ZOOM_MAX = 18
 
-        lat_diff = lat_max - lat_min
-        lon_diff = lon_max - lon_min
-
-        # Approximate the number of tiles required
-        lat_zoom = np.log2((TILE_SIZE * map_height) / lat_diff)
-        lon_zoom = np.log2((TILE_SIZE * map_width) / lon_diff)
-
-        # Return the minimum zoom level within bounds
-        return min(max(min(lat_zoom, lon_zoom), 1), ZOOM_MAX)
-
-
-# Create a Folium map
-def create_map(df):
-    # calculate center and zoom level
-    coordinates = df[['Latitude', 'Longitude']].values.tolist()
-    coordinates_np=np.array(coordinates)
-    center_lat = np.mean(coordinates_np[:, 0])
-    center_lon = np.mean(coordinates_np[:, 1])
-
-    # Calculate bounding box
-    lat_min, lat_max = np.min(coordinates_np[:, 0]), np.max(coordinates_np[:, 0])
-    lon_min, lon_max = np.min(coordinates_np[:, 1]), np.max(coordinates_np[:, 1])
-
-    zoom_level = calculate_zoom_level(lat_min, lat_max, lon_min, lon_max)
-
-
+# Function to create map
+def create_map(df, coordinates):
     m = folium.Map(
         tiles='https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
-        attr='OpenStreetMap HOT',
-        location=[center_lat,center_lon],
-        zoom_start=zoom_level
+        attr='OpenStreetMap HOT'
     )
     m.fit_bounds(coordinates)
-
 
     asterisk_columns = [col for col in df.columns if col.endswith('*')]
     tooltip_col = asterisk_columns[0] if asterisk_columns else None
@@ -289,15 +169,9 @@ def create_map(df):
         popup_content = "".join(
             f"<b>{col[:-1]}:</b> {row[col]}<br>" for col in asterisk_columns
         )
-        icon_color = 'blue'
-        if 'Status*' in row:
-            if row['Status*'] in ['Open', 'Inactive']:
-                icon_color = 'red'
-            elif row['Status*'] in ['Closed', 'Active']:
-                icon_color = 'green'
-            elif row['Status*'] in ['Ongoing']:
-                icon_color = 'blue'
         
+        icon_color = 'blue' if row.get('Status*', '') == 'Closed' else 'red'
+
         marker_id = f"marker_{idx}"
         marker = folium.Marker(
             location=[row['Latitude'], row['Longitude']],
@@ -313,1535 +187,948 @@ def create_map(df):
             icon=folium.Icon(color=icon_color, prefix='fa', icon='lightbulb')
         )
         marker.add_to(m)
-        
-        # # Add marker coordinates to bounds list
-        # bounds.append([row['Latitude'], row['Longitude']])
-        # print(bounds)
-
-    # bounds=[ [29.8319695215679, 31.3584769525776], [29.8699487797015, 31.3517904123072], [29.8699487797015, 31.3517904123072]]
-    # # Fit the map to the bounds of all markers
-    # if bounds:
-    #     m.fit_bounds(bounds)
-
-    return m
-def create_map_alternative(df):
-    # Calculate the center of all points
-    center_lat = df['Latitude'].mean()
-    center_lon = df['Longitude'].mean()
-
-    # Calculate the maximum distance from the center
-    max_distance = max(
-        df.apply(lambda row: ((row['Latitude'] - center_lat)**2 + 
-                              (row['Longitude'] - center_lon)**2)**0.5, axis=1)
-    )
-
-    # Create the map centered on the calculated point
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
-
-    # Add markers (same as before)
-    for idx, row in df.iterrows():
-        folium.Marker(
-            location=[row['Latitude'], row['Longitude']],
-            popup=f"{row['Latitude']}, {row['Longitude']}",
-            icon=folium.Icon(color='blue', icon='info-sign')
-        ).add_to(m)
-
-    # Adjust zoom level based on the maximum distance
-    m.fit_bounds([[center_lat - max_distance, center_lon - max_distance],
-                  [center_lat + max_distance, center_lon + max_distance]])
-
     return m
 
-# Main map page
+# Main function for the history page
 def map_page():
-    if 'selected_sheet' not in st.session_state:
-        st.session_state['selected_sheet'] = None
-        # Initialize session state if not already
-    if 'dynamic_mode' not in st.session_state:
-        st.session_state['dynamic_mode'] = False
-    if 'route_coords' not in st.session_state:
-        st.session_state['route_coords'] = []
-
-    data_url = 'data/data.xlsx'
-    sheets_dict = load_data(data_url)
-    sheet_names = list(sheets_dict.keys())
+    st.markdown("""
+        <style>
+        div[data-testid="stSidebarCollapseButton"] {
+            padding: 2px;  
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
     st.markdown("""
         <style>
-        [class="menu-item active"]{
-                border: 3px;
-                
-                }
-.menu-item.active{
-                
-display:none !important;                }
-        .stTabs [role="tablist"] {
-            display: flex;
-            justify-content: space-evenly;
-            flex-wrap: wrap;
+        /* Reduce padding and margin for the sidebar header */
+        div[data-testid="stSidebarHeader"] {
+            padding: 10px; /* Adjust as needed */
+            margin: 0;     /* Adjust as needed */
         }
-        .stTabs button {
-            flex-grow: 1;
-            flex-basis: 0;
-            text-align: center;
+
+        /* Reduce padding around the logo image */
+        div[data-testid="stSidebarHeader"] img[data-testid="stLogo"] {
+            width: 100px;  /* Adjust width as needed */
+            height: auto;  /* Maintain aspect ratio */
+            margin: 0;     /* Adjust margin if needed */
         }
+
+        /* Reduce padding around the sidebar collapse button */
+        div[data-testid="stSidebarCollapseButton"] {
+            padding: 2px;  /* Adjust as needed */
+            margin: 0;     /* Adjust as needed */
+        }
+
+        /* Adjust button padding */
+        div[data-testid="stSidebarCollapseButton"] button {
+            padding: 2px;  /* Adjust as needed */
+        }
+            
+        /* Adjust button padding */
+        div[data-testid="stAppViewBlockContainer"]
+        {
+            padding-top: 30px; /* Adjust as needed */
+            margin: 0;     /* Adjust as needed */
+        }
+                
+    
+        </style>
+        
+        """, unsafe_allow_html=True)
+
+
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stAppViewBlockContainer"] {
+        padding-top: 5px;
+        padding-bottom: 5px;
+        padding-right: 60px;
+        padding-left: 60px;
+        margin: 0;}
+
         .element-container iframe {
         width: 100% !important;
         height: 600px;  /* Adjust the height as needed */
         }
+
+        
         </style>
-    """, unsafe_allow_html=True)
-    
-    
-                
-    tab_names = [f"{sheet}" for sheet in sheet_names]
-    tabs = st.tabs(tab_names)
+        """, unsafe_allow_html=True)
 
-    for i, tab in enumerate(tabs):
-        with tab:
-            selected_sheet = sheet_names[i]
-
-            df = sheets_dict[selected_sheet]
-            # Force re-render on tab switch
-            if st.session_state['selected_sheet'] != selected_sheet:
-                st.session_state['selected_sheet'] = selected_sheet
-
-            df = sheets_dict[selected_sheet]
-            coordinates = df[['Latitude', 'Longitude']].values.tolist()
+    # Load data from Excel
+    data_url = 'data/data.xlsx'
+    sheets_dict = load_data(data_url)
+    sheet_names = list(sheets_dict.keys())
 
 
 
-            _, col1, col2 = st.columns([4, 1, 1], gap="small", vertical_alignment="bottom")
 
-            with col1:
-                if st.button('🗺️', key=f"best_route{i}"):
-                    if len(coordinates) >= 2:
-                        # Check if number of waypoints exceeds OSRM limit
-                        if len(coordinates) > 100:
-                            st.session_state['warning_message'] = "The number of waypoints exceeds the OSRM limit of 100. Please reduce the number of locations."
-                        else:
-                            osrm_url = construct_osrm_url(coordinates[0], coordinates[-1], coordinates[1:-1])
-                            trip_data = get_trip_data(osrm_url)
 
-                            route_coords = trip_data['trips'][0]['geometry']['coordinates']
-                            route_coords = [(lat, lon) for lon, lat in route_coords]
+    # Initialize session state if not already
+    if 'dynamic_mode' not in st.session_state:
+        st.session_state['dynamic_mode'] = False
+    if 'route_coords' not in st.session_state:
+        st.session_state['route_coords'] = []
+    if 'warning_message' not in st.session_state:
+        st.session_state['warning_message']=""  # Flag to determine if the map needs updating
 
-                            st.session_state['route_coords'] = route_coords
-                            st.session_state['warning_message'] = None  # Clear warning message
+    # Initialize button states and message in session state
+    mystate = st.session_state
+    if "btn_prsd_status" not in mystate:
+        mystate.btn_prsd_status = [False] * len(sheet_names)
+    # if "message" not in mystate:
+    #     mystate.message = "Select a sheet to see the message here."
+    if "selected_sheet_index" not in mystate:
+        mystate.selected_sheet_index = 0
 
-            with col2:
-                if st.button("🖱️",key=f"dynamic_mode{i}"):
-                    st.session_state['dynamic_mode'] = not st.session_state['dynamic_mode']
+    unpressed_font_color = "#FFFFFF"  # White font for unpressed buttons
+    pressed_font_color = "#ff4b4b"  # Red font for pressed buttons
+    unpressed_border_color = "#26282E"  # Dark border for unpressed buttons
+    pressed_border_color = "#ff4b4b"  # Red border for pressed buttons
+    hover_font_color = "#ff4b4b"  # Red font color on hover
 
-            if selected_sheet == 'Emergency':
+    def ChangeButtonColour(widget_label, prsd_status):
+        # Change button font color dynamically using JavaScript
+        font_color = pressed_font_color if prsd_status else unpressed_font_color
+        border_color = pressed_border_color if prsd_status else unpressed_border_color
+
+        htmlstr = f"""
+            <script>
+                var elements = window.parent.document.querySelectorAll('button');
+                for (var i = 0; i < elements.length; ++i) {{
+                    if (elements[i].innerText == '{widget_label}') {{
+                        elements[i].style.background = 'none';  // No background color
+                        elements[i].style.border = 'none';  // No border
+                        elements[i].style.color = '{font_color}';  // Change font color
+                        elements[i].style.fontWeight = 'bold';  // Optionally, make text bold
+                        elements[i].style.cursor = 'pointer';  // Pointer on hover
+                        elements[i].style.borderBottom = '2px solid {border_color}';
+                        elements[i].style.width = '100%';  // Full width
+                        elements[i].style.padding = '0';  // Remove padding
+                        elements[i].style.borderRadius = '0';  // No rounded corners
+
+                        // Add hover effect
+                        elements[i].onmouseover = function() {{
+                            this.style.color = '{hover_font_color}';  // Red font color on hover
+                        }};
+                        elements[i].onmouseout = function() {{
+                            this.style.color = '{font_color}';  // Restore original font color when not hovering
+                        }};
+                    }}
+                }}
+            </script>
+        """
+        components.html(htmlstr, height=0, width=0)
+
+    def ChkBtnStatusAndAssignColour():
+        # Check button statuses and assign the appropriate color
+        for i in range(len(sheet_names)):
+            ChangeButtonColour(sheet_names[i], mystate.btn_prsd_status[i])
+
+    def btn_pressed_callback(i):
+        # Update session state when a button is pressed
+        mystate.btn_prsd_status = [False] * len(sheet_names)
+        mystate.btn_prsd_status[i] = True
+        mystate.selected_sheet_index = i
+        # mystate.message = f'You clicked {sheet_names[i]}!'
+
+    # Create columns for each button (sheet)
+    columns = st.columns(len(sheet_names))
+
+    for i, text in enumerate(sheet_names):
+        # Create a button for each sheet name and retain its clicked state
+        if columns[i].button(text, key=f"btn_{i}", on_click=btn_pressed_callback, args=(i,)):
+            # The button press will trigger the callback and update the message
+            pass
+
+    # # Display the message
+    # st.write(mystate.message)
+
+
+
+    # Check if any sheet is selected
+    if mystate.selected_sheet_index is not None:
+        selected_sheet = sheet_names[mystate.selected_sheet_index]
+        df = sheets_dict[selected_sheet]
+        coordinates = df[['Latitude', 'Longitude']].values.tolist()
+
+        if selected_sheet == "Emergency" :
+                # Call the KPI calculation function
                 kpis = calculate_emergency_kpis(df)
-                col1, col2, col3, col4, col5 = st.columns([1, 2, 1, 1, 1])
-                col1.metric("Closure Percentage", f"{kpis['Closure Percentage']:.2f}%")
-                col2.metric("Emergency Closure Time", kpis['Emergency Closure Time'])
-                col3.metric("Satisfaction Rate", f"{kpis['Satisfaction Rate']:.2f}%")
-                col4.metric("Emergency Numbers", kpis['Emergency Numbers'])
-                col5.metric("Expected Emergency Alarm", kpis['Expected Emergency Alarm'])
 
-            elif selected_sheet == 'Workforce':
-                kpis = calculate_workforce_kpis(df)
-                col1, col2, col3, col4, col5 = st.columns([1, 2, 1, 1, 1])
-                col1.metric("Operation Percentage", f"{kpis['Operation Percentage']:.2f}%")
-                col2.metric("Working Hours", kpis['Working Hours'])
-                col3.metric("Evaluation Rate", f"{kpis['Evaluation Rate']:.2f}")
-                col4.metric("Complain Numbers", kpis['Complain Numbers'])
-                # col5.metric("Expected Complaints Alarm", kpis['Expected Complaints Alarm'])
-                # st.pyplot(kpis['fig'])
+                # Display the KPIs
+                st.write("## Key Performance Indicators (KPIs)")
+                col11, col12, col13, col14, col15 = st.columns([1,2,1,1,1])
+                col11.metric("Closure Percentage", f"{kpis['Closure Percentage']:.2f}%")
+                col12.metric("Emergency Closure Time", f"{kpis['Emergency Closure Time']}")
+                col13.metric("Satisfaction Rate", f"{kpis['Satisfaction Rate']:.2f}%")
+                col14.metric("Emergency Numbers", kpis['Emergency Numbers'])
+                col15.write(f"Expected Emergency Alarm: {kpis['Expected Emergency Alarm']}")
+
+        elif selected_sheet == "Workforce" :
+            # Call the KPI calculation function
+            kpis = calculate_workforce_kpis(df)
+
+            # Display the KPIs in Streamlit
+            st.write("## Key Performance Indicators (KPIs)")
+            col11, col12, col13, col14, col15 = st.columns([1, 2, 1, 1, 1])
+            col11.metric("Operation Percentage", f"{kpis['Operation Percentage']:.2f}%")
+            col12.metric("Working Hours", kpis['Working Hours'])
+            col13.metric("Evaluation Rate", f"{kpis['Evaluation Rate']:.2f}")
+            col14.metric("Complain Numbers", kpis['Complain Numbers'])
+            col15.write(f"Expected Complains Alarm: {kpis['Expected Complains Alarm']}")
 
 
-            # In your map_page function, replace create_map with create_map_alternative
-            # folium_map = create_map_alternative(df)
-            folium_map = create_map(df)
+            # col21, col22, col23 = st.columns([1,2,1])
+            # # Display the pie chart in Streamlit
+            # with col22:
+            #     st.pyplot(kpis['fig'])
+
+        # Display map
+        m = create_map(df, coordinates)
+        
+        # Add route to the map if it exists
+        if st.session_state['route_coords']:
+            PolyLine(st.session_state['route_coords'], color="blue", weight=2.5, opacity=1).add_to(m)
+        
+        # # Conditionally render the map based on mode
+        # if st.session_state['dynamic_mode']:
+        #     st_folium(m)
+        # else:
+        #     folium_static(m)
+        
+        folium_static(m)
+
+        col31, col32, col33,col34, col35,col36 = st.columns([4,1,1,1,1,4])
+        with col32:
+            if st.button('🗺️',use_container_width=True):
+                if len(coordinates) >= 2:
+                    # Check if number of waypoints exceeds OSRM limit
+                    if len(coordinates) > 100:
+                        st.session_state['warning_message'] = "The number of waypoints exceeds the OSRM limit of 100. Please reduce the number of locations."
+                    else:
+                        osrm_url = construct_osrm_url(coordinates[0], coordinates[-1], coordinates[1:-1])
+                        trip_data = get_trip_data(osrm_url)
+
+
+                        route_coords = trip_data['trips'][0]['geometry']['coordinates']
+                        route_coords = [(lat, lon) for lon, lat in route_coords]
+
+                        st.session_state['route_coords'] = route_coords
+                        st.session_state['warning_message'] = None  # Clear warning message
+
+                        # Force a rerun of the app to refresh the map with the new route
+                        st.rerun()
+
+
+        with col33:
+            if st.button("🖱️",use_container_width=True):
+                st.session_state['dynamic_mode'] = not st.session_state['dynamic_mode']
+
+
+        with col34:
+            if st.button("✨",use_container_width=True):
+                pass
+
+        with col35:
+            if st.button("📊",use_container_width=True):
+                pass
+
+        if st.session_state['warning_message']:
+            st.warning ("The number of waypoints exceeds the OSRM limit of 100. Please reduce the number of locations.")
+
+
+
+        # Display the DataFrame
+        #st.dataframe(df, use_container_width=True)
+     
+
+    # Specify the column you want to filter on (e.g., 'Age')
+    filter_column = 'Type*'  # Change this to the desired column name
+
+
+        # Create Grid Options Builder
+    # Create Grid Options Builder
+    gb = GridOptionsBuilder.from_dataframe(df)
+
+    # Enable filtering only for the specified column and hide other column options
+    for col in df.columns:
+        if col == filter_column:
+            gb.configure_column(col, filter=True,menuTabs=['filterMenuTab'])# suppressMenu=False)
+        else:
+            gb.configure_column(col, suppressMenu=True)  # Suppress menu for other columns
+
             
-            #folium_map = create_map(df)
-            # st_folium(folium_map)
-            # fit_bounds([[52.193636, -2.221575], [52.636878, -1.139759]])
 
-            folium_static(folium_map)
+    # Build grid options and suppress the column selection panel
+    gridOptions = gb.build()
+
+    # Display AgGrid with custom column settings
+    AgGrid(df, gridOptions=gridOptions, use_container_width=True)
 
 
-            # Add route to the map if it exists
-            if st.session_state['route_coords']:
-                PolyLine(st.session_state['route_coords'], color="blue", weight=2.5, opacity=1).add_to(folium_map)
 
-            # Display the DataFrame table under the map
-            st.subheader(f"Data for {selected_sheet}")
-            st.dataframe(df,use_container_width=True)
+    # Apply the correct button colors after rendering the buttons
+    ChkBtnStatusAndAssignColour()
 
-# Main Streamlit app
-def main():
-    map_page
 
-#####################################################################################################################
+#####################################################################
 # import streamlit as st
-# import folium
 # import pandas as pd
+# import streamlit.components.v1 as components
+
+# # Load data from Excel
+# def load_data(file_path):
+#     return pd.read_excel(file_path, sheet_name=None)
+
+# def history_page():
+#     # Load data from Excel
+#     data_url = 'data/data.xlsx'
+#     sheets_dict = load_data(data_url)
+#     sheet_names = list(sheets_dict.keys())
+
+#     # Initialize button states in session state
+#     mystate = st.session_state
+#     if "btn_prsd_status" not in mystate:
+#         mystate.btn_prsd_status = [False] * len(sheet_names)
+
+#     unpressed_font_color = "#FFFFFF"  # White font for unpressed buttons
+#     pressed_font_color = "#ff4b4b"  # Red font for pressed buttons
+#     unpressed_border_color = "#26282E"#"#FFFFFF"  # White border for unpressed buttons
+#     pressed_border_color = "#ff4b4b"  # Red border for pressed buttons
+#     hover_font_color = "#ff4b4b"  # Green font color on hover
+
+#     def ChangeButtonColour(widget_label, prsd_status):
+#         # Change button font color dynamically using JavaScript
+#         font_color = pressed_font_color if prsd_status else unpressed_font_color
+#         border_color = pressed_border_color if prsd_status else unpressed_border_color
+
+#         htmlstr = f"""
+#             <script>
+#                 var elements = window.parent.document.querySelectorAll('button');
+#                 for (var i = 0; i < elements.length; ++i) {{
+#                     if (elements[i].innerText == '{widget_label}') {{
+#                         elements[i].style.background = 'none';  // No background color
+#                         elements[i].style.border = 'none';  // No border
+#                         elements[i].style.color = '{font_color}';  // Change font color
+#                         elements[i].style.fontWeight = 'bold';  // Optionally, make text bold
+#                         elements[i].style.cursor = 'pointer';  // Pointer on hover
+#                         elements[i].style.borderBottom = '2px solid {border_color}';
+#                         elements[i].style.width = '100%';  // Full width
+#                         elements[i].style.padding = '0';  // Remove padding
+#                         elements[i].style.borderRadius = '0';  // No rounded corners
+#                         elements[i].style.gap = 'none';  // No rounded corners
+
+#                         // Add hover effect
+#                         elements[i].onmouseover = function() {{
+#                             this.style.color = '{hover_font_color}';  // Green font color on hover
+#                         }};
+#                         elements[i].onmouseout = function() {{
+#                             this.style.color = '{font_color}';  // Restore original font color when not hovering
+#                         }};
+#                     }}
+#                 }}
+#             </script>
+#         """
+#         components.html(htmlstr, height=0, width=0)
+
+#     def ChkBtnStatusAndAssignColour():
+#         # Check button statuses and assign the appropriate color
+#         for i in range(len(sheet_names)):
+#             ChangeButtonColour(sheet_names[i], mystate.btn_prsd_status[i])
+
+#     def btn_pressed_callback(i):
+#         # Update session state when a button is pressed
+#         mystate.btn_prsd_status = [False] * len(sheet_names)
+#         mystate.btn_prsd_status[i] = True
+
+#     # Create columns for each button (sheet)
+#     columns = st.columns(len(sheet_names))
+
+#     for i, text in enumerate(sheet_names):
+#         # Create a button for each sheet name and retain its clicked state
+#         if columns[i].button(text, key=f"btn_{i}", on_click=btn_pressed_callback, args=(i,)):
+#             st.write(f'You clicked {text}!')
+
+#     # Apply the correct button colors after rendering the buttons
+#     ChkBtnStatusAndAssignColour()
+
+# # Call the function to display the history page
+# history_page()
+
+# import streamlit as st
+# import pandas as pd
+# import folium
 # from streamlit_folium import folium_static
-# from folium import Icon
 # from datetime import datetime
 # from matplotlib import pyplot as plt
+# from utils.route_utils import construct_osrm_url, get_trip_data
+# from folium import PolyLine
 
-# # Helper function to parse time
+# # Utility function to parse time
 # def parse_time(t):
 #     try:
 #         return pd.to_datetime(t, format='%H:%M:%S').time()
 #     except ValueError:
-#         try:
-#             return pd.to_datetime(t, format='%H:%M').time()
-#         except ValueError:
-#             raise ValueError(f"Time format for '{t}' is incorrect")
+#         return pd.to_datetime(t, format='%H:%M').time()
 
-# # KPI calculations for Emergency data
+# # Load data from Excel
+# def load_data(file_path):
+#     return pd.read_excel(file_path, sheet_name=None)
+
+# # Calculate KPIs for emergency situations
 # def calculate_emergency_kpis(df):
 #     df_copy = df.copy()
 #     df_copy.columns = df_copy.columns.str.rstrip('*')
+
+#     # Validate required columns
 #     required_columns = ['Open Time', 'Closure Time', 'Status', 'Satisfaction']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
+#     if any(col not in df_copy.columns for col in required_columns):
+#         raise ValueError("Required column is missing from the DataFrame")
 
 #     today = datetime.today().date()
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
 
+#     # Ensure time columns are correctly formatted
+#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
+#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
+
+#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
+#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
+
+#     # Calculate KPIs
 #     emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     emergency_closure_time_str = f"{emergency_closure_time.days} days {emergency_closure_time.seconds // 3600} hrs {(emergency_closure_time.seconds % 3600) // 60} mins"
-
 #     closure_percentage = (df_copy['Status'] == 'Closed').mean() * 100
 #     satisfaction_rate = df_copy['Satisfaction'].str.lower().apply(lambda x: x == 'satisfied').mean() * 100
-#     df_copy['Location'] = df_copy[['Latitude', 'Longitude']].apply(lambda x: f"{x['Latitude']},{x['Longitude']}", axis=1)
-#     emergency_numbers = df_copy['Location'].nunique()
+#     emergency_numbers = df_copy[['Latitude', 'Longitude']].nunique()
 
-#     expected_emergency_alarm = "To be calculated based on relationships"
+#     emergency_closure_time_str = f"{emergency_closure_time.days} days {emergency_closure_time.seconds // 3600} hrs {(emergency_closure_time.seconds % 3600) // 60} mins"
 
 #     return {
 #         "Closure Percentage": closure_percentage,
 #         "Emergency Closure Time": emergency_closure_time_str,
 #         "Satisfaction Rate": satisfaction_rate,
 #         "Emergency Numbers": emergency_numbers,
-#         "Expected Emergency Alarm": expected_emergency_alarm
+#         "Expected Emergency Alarm": "To be calculated"
 #     }
 
-# # KPI calculations for Workforce data
+# # Calculate KPIs for workforce
 # def calculate_workforce_kpis(df):
 #     df_copy = df.copy()
 #     df_copy.columns = df_copy.columns.str.rstrip('*')
+
+#     # Validate required columns
 #     required_columns = ['Open Time', 'Closure Time', 'Status', 'Evaluation', 'Complain Today']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
+#     if any(col not in df_copy.columns for col in required_columns):
+#         raise ValueError("Required column is missing from the DataFrame")
 
 #     today = datetime.today().date()
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
 
+#     # Ensure time columns are correctly formatted
+#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
+#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
+
+#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
+#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
+
+#     # Calculate KPIs
 #     working_hours = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     working_hours_str = f"{working_hours.days} days {working_hours.seconds // 3600} hours {(working_hours.seconds % 3600) // 60} min"
-
-#     total_operations = len(df_copy)
-#     active_operations = (df_copy['Status'] == 'Active').sum()
-#     operation_percentage = (active_operations / total_operations) * 100
-
-#     evaluation_rate = df_copy['Evaluation'].sum() / total_operations if total_operations > 0 else 0
+#     operation_percentage = (df_copy['Status'] == 'Active').mean() * 100
+#     evaluation_rate = df_copy['Evaluation'].mean() * 100
 #     complain_numbers = df_copy['Complain Today'].sum()
 
-#     operation_counts = df_copy['Operation'].value_counts()
-#     fig, ax = plt.subplots(figsize=(6, 6))
-#     ax.pie(operation_counts, labels=operation_counts.index, autopct='%1.1f%%', startangle=90, textprops={'color': 'black'})
+#     working_hours_str = f"{working_hours.days} days {working_hours.seconds // 3600} hours {(working_hours.seconds % 3600) // 60} min"
+
+#     # Generate pie chart for operations
+#     fig, ax = plt.subplots(figsize=(1, 1))
+#     status_counts = df_copy['Operation'].value_counts()
+#     ax.pie(status_counts, labels=status_counts.index, autopct='%1.1f%%', startangle=90)
 #     ax.axis('equal')
-#     plt.title('Operations Status Distribution')
 
 #     return {
 #         "Operation Percentage": operation_percentage,
 #         "Working Hours": working_hours_str,
 #         "Evaluation Rate": evaluation_rate,
 #         "Complain Numbers": complain_numbers,
-#         "Expected Complaints Alarm": "To be calculated based on relationships",
+#         "Expected Complains Alarm": "To be calculated",
 #         "fig": fig
 #     }
 
-# # Load data from Excel
-# def load_data(file_path):
-#     return pd.read_excel(file_path, sheet_name=None)
-
-# # Create a Folium map
-# def create_map(df):
-#     m = folium.Map(
-#         tiles='https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
-#         attr='OpenStreetMap HOT'
-#     )
-
-#     asterisk_columns = [col for col in df.columns if col.endswith('*')]
-#     tooltip_col = asterisk_columns[0] if asterisk_columns else None
-#     asterisk_columns = asterisk_columns[1:] if len(asterisk_columns) > 1 else []
-
-#     # Initialize bounds list
-#     bounds = []
-
-#     for idx, row in df.iterrows():
-#         popup_content = "".join(
-#             f"<b>{col[:-1]}:</b> {row[col]}<br>" for col in asterisk_columns
-#         )
-#         icon_color = 'blue'
-#         if 'Status*' in row:
-#             if row['Status*'] in ['Open', 'Inactive']:
-#                 icon_color = 'red'
-#             elif row['Status*'] in ['Closed', 'Active']:
-#                 icon_color = 'green'
-#             elif row['Status*'] in ['Ongoing']:
-#                 icon_color = 'blue'
-        
-#         marker_id = f"marker_{idx}"
-#         marker = folium.Marker(
-#             location=[row['Latitude'], row['Longitude']],
-#             popup=f"""
-#                 <div>
-#                     <b>{row[tooltip_col]}</b><br>
-#                     {popup_content}
-#                     <br><br>
-#                     <a href="?marker_id={marker_id}" style="text-decoration:none;"></a>
-#                 </div>
-#             """,
-#             tooltip=row[tooltip_col] if tooltip_col else '',
-#             icon=folium.Icon(color=icon_color, prefix='fa', icon='lightbulb')
-#         )
-#         marker.add_to(m)
-        
-#         # Add marker coordinates to bounds list
-#         bounds.append([row['Latitude'], row['Longitude']])
-
-#     # Fit the map to the bounds of all markers
-#     if bounds:
-#         m.fit_bounds(bounds)
-
-#     return m
-
-# # Main map page
-# def map_page():
-#     if 'selected_sheet' not in st.session_state:
-#         st.session_state['selected_sheet'] = None
-
-#     data_url = 'data/data.xlsx'
-#     sheets_dict = load_data(data_url)
-#     sheet_names = list(sheets_dict.keys())
-
-#     st.markdown("""
-#         <style>
-#         .stTabs [role="tablist"] {
-#             display: flex;
-#             justify-content: space-evenly;
-#             flex-wrap: wrap;
-#         }
-#         .stTabs button {
-#             flex-grow: 1;
-#             flex-basis: 0;
-#             text-align: center;
-#         }
-#         .element-container iframe {
-#         width: 100% !important;
-#         height: 600px;  /* Adjust the height as needed */
-#         }
-#         </style>
-#     """, unsafe_allow_html=True)
-    
-#     tab_names = [f"{sheet}" for sheet in sheet_names]
-#     tabs = st.tabs(tab_names)
-
-#     for i, tab in enumerate(tabs):
-#         with tab:
-#             selected_sheet = sheet_names[i]
-
-#             df = sheets_dict[selected_sheet]
-#             # Force re-render on tab switch
-#             print(f"session_state {st.session_state['selected_sheet']} and selected_sheet {selected_sheet}")
-#             if st.session_state['selected_sheet'] != selected_sheet:
-#                 st.session_state['selected_sheet'] = selected_sheet
-
-#             df = sheets_dict[selected_sheet]
-
-#             if selected_sheet == 'Emergency':
-#                 kpis = calculate_emergency_kpis(df)
-#                 col1, col2, col3, col4, col5 = st.columns([1, 2, 1, 1, 1])
-#                 col1.metric("Closure Percentage", f"{kpis['Closure Percentage']:.2f}%")
-#                 col2.metric("Emergency Closure Time", kpis['Emergency Closure Time'])
-#                 col3.metric("Satisfaction Rate", f"{kpis['Satisfaction Rate']:.2f}%")
-#                 col4.metric("Emergency Numbers", kpis['Emergency Numbers'])
-#                 col5.metric("Expected Emergency Alarm", kpis['Expected Emergency Alarm'])
-
-#             elif selected_sheet == 'Workforce':
-#                 kpis = calculate_workforce_kpis(df)
-#                 col1, col2, col3, col4, col5 = st.columns([1, 2, 1, 1, 1])
-#                 col1.metric("Operation Percentage", f"{kpis['Operation Percentage']:.2f}%")
-#                 col2.metric("Working Hours", kpis['Working Hours'])
-#                 col3.metric("Evaluation Rate", f"{kpis['Evaluation Rate']:.2f}")
-#                 col4.metric("Complain Numbers", kpis['Complain Numbers'])
-#                 col5.metric("Expected Complaints Alarm", kpis['Expected Complaints Alarm'])
-#                 _, col22, _ = st.columns([1, 1.5, 1])
-#                 # Display the pie chart in Streamlit
-#                 # with col22:
-#                 #     st.pyplot(kpis['fig'])
-
-#             # Create and display the map
-#             m = create_map(df)
-#             folium_static(m)
-
-#             # Display the DataFrame table under the map
-#             st.subheader(f"Data for {selected_sheet}")
-#             st.dataframe(df,use_container_width=True)
-
-# # Main Streamlit app
-# def main():
-#     map_page
-##############################################################################################################################$#
-# import streamlit as st
-# import folium
-# import pandas as pd
-# from streamlit_folium import folium_static
-# from folium import Icon
-# from datetime import datetime
-# from matplotlib import pyplot as plt
-
-# # Helper function to parse time
-# def parse_time(t):
-#     try:
-#         return pd.to_datetime(t, format='%H:%M:%S').time()
-#     except ValueError:
-#         try:
-#             return pd.to_datetime(t, format='%H:%M').time()
-#         except ValueError:
-#             raise ValueError(f"Time format for '{t}' is incorrect")
-
-# # KPI calculations for Emergency data
-# def calculate_emergency_kpis(df):
-#     df_copy = df.copy()
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Satisfaction']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
-
-#     today = datetime.today().date()
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-
-#     emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     emergency_closure_time_str = f"{emergency_closure_time.days} days {emergency_closure_time.seconds // 3600} hrs {(emergency_closure_time.seconds % 3600) // 60} mins"
-
-#     closure_percentage = (df_copy['Status'] == 'Closed').mean() * 100
-#     satisfaction_rate = df_copy['Satisfaction'].str.lower().apply(lambda x: x == 'satisfied').mean() * 100
-#     df_copy['Location'] = df_copy[['Latitude', 'Longitude']].apply(lambda x: f"{x['Latitude']},{x['Longitude']}", axis=1)
-#     emergency_numbers = df_copy['Location'].nunique()
-
-#     expected_emergency_alarm = "To be calculated based on relationships"
-
-#     return {
-#         "Closure Percentage": closure_percentage,
-#         "Emergency Closure Time": emergency_closure_time_str,
-#         "Satisfaction Rate": satisfaction_rate,
-#         "Emergency Numbers": emergency_numbers,
-#         "Expected Emergency Alarm": expected_emergency_alarm
-#     }
-
-# # KPI calculations for Workforce data
-# def calculate_workforce_kpis(df):
-#     df_copy = df.copy()
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Evaluation', 'Complain Today']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
-
-#     today = datetime.today().date()
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, parse_time(x)))
-
-#     working_hours = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     working_hours_str = f"{working_hours.days} days {working_hours.seconds // 3600} hours {(working_hours.seconds % 3600) // 60} min"
-
-#     total_operations = len(df_copy)
-#     active_operations = (df_copy['Status'] == 'Active').sum()
-#     operation_percentage = (active_operations / total_operations) * 100
-
-#     evaluation_rate = df_copy['Evaluation'].sum() / total_operations if total_operations > 0 else 0
-#     complain_numbers = df_copy['Complain Today'].sum()
-
-#     operation_counts = df_copy['Operation'].value_counts()
-#     fig, ax = plt.subplots(figsize=(6, 6))
-#     ax.pie(operation_counts, labels=operation_counts.index, autopct='%1.1f%%', startangle=90, textprops={'color': 'black'})
-#     ax.axis('equal')
-#     plt.title('Operations Status Distribution')
-
-#     return {
-#         "Operation Percentage": operation_percentage,
-#         "Working Hours": working_hours_str,
-#         "Evaluation Rate": evaluation_rate,
-#         "Complain Numbers": complain_numbers,
-#         "Expected Complaints Alarm": "To be calculated based on relationships",
-#         "fig": fig
-#     }
-
-# # Load data from Excel
-# def load_data(file_path):
-#     return pd.read_excel(file_path, sheet_name=None)
-
-# # Create a Folium map
-# def create_map(df):
-#     m = folium.Map(
-#         tiles='https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
-#         attr='OpenStreetMap HOT'
-#     )
-
-#     asterisk_columns = [col for col in df.columns if col.endswith('*')]
-#     tooltip_col = asterisk_columns[0] if asterisk_columns else None
-#     asterisk_columns = asterisk_columns[1:] if len(asterisk_columns) > 1 else []
-
-#     # Initialize bounds list
-#     bounds = []
-
-#     for idx, row in df.iterrows():
-#         popup_content = "".join(
-#             f"<b>{col[:-1]}:</b> {row[col]}<br>" for col in asterisk_columns
-#         )
-#         icon_color = 'blue'
-#         if 'Status*' in row:
-#             if row['Status*'] in ['Open', 'Inactive']:
-#                 icon_color = 'red'
-#             elif row['Status*'] in ['Closed', 'Active']:
-#                 icon_color = 'green'
-#             elif row['Status*'] in ['Ongoing']:
-#                 icon_color = 'blue'
-        
-#         marker_id = f"marker_{idx}"
-#         marker = folium.Marker(
-#             location=[row['Latitude'], row['Longitude']],
-#             popup=f"""
-#                 <div>
-#                     <b>{row[tooltip_col]}</b><br>
-#                     {popup_content}
-#                     <br><br>
-#                     <a href="?marker_id={marker_id}" style="text-decoration:none;"></a>
-#                 </div>
-#             """,
-#             tooltip=row[tooltip_col] if tooltip_col else '',
-#             icon=folium.Icon(color=icon_color, prefix='fa', icon='lightbulb')
-#         )
-#         marker.add_to(m)
-        
-#         # Add marker coordinates to bounds list
-#         bounds.append([row['Latitude'], row['Longitude']])
-
-#     # Fit the map to the bounds of all markers
-#     if bounds:
-#         m.fit_bounds(bounds)
-
-#     return m
-
-# # Main map page
-# def map_page():
-#     if 'selected_sheet' not in st.session_state:
-#         st.session_state['selected_sheet'] = None
-
-#     data_url = 'data/data.xlsx'
-#     sheets_dict = load_data(data_url)
-#     sheet_names = list(sheets_dict.keys())
-
-#     st.markdown("""
-#         <style>
-#         .stTabs [role="tablist"] {
-#             display: flex;
-#             justify-content: space-evenly;
-#             flex-wrap: wrap;
-#         }
-#         .stTabs button {
-#             flex-grow: 1;
-#             flex-basis: 0;
-#             text-align: center;
-#         }
-#         </style>
-#     """, unsafe_allow_html=True)
-    
-#     tab_names = [f"{sheet}" for sheet in sheet_names]
-#     tabs = st.tabs(tab_names)
-
-#     for i, tab in enumerate(tabs):
-#         with tab:
-#             if st.session_state['selected_sheet'] != sheet_names[i]:
-#                 st.session_state['selected_sheet'] = sheet_names[i]
-            
-#             selected_sheet = sheet_names[i]
-#             df = sheets_dict[selected_sheet]
-
-#             if selected_sheet == 'Emergency':
-#                 kpis = calculate_emergency_kpis(df)
-#                 col1, col2, col3, col4, col5 = st.columns([1, 2, 1, 1, 1])
-#                 col1.metric("Closure Percentage", f"{kpis['Closure Percentage']:.2f}%")
-#                 col2.metric("Emergency Closure Time", kpis['Emergency Closure Time'])
-#                 col3.metric("Satisfaction Rate", f"{kpis['Satisfaction Rate']:.2f}%")
-#                 col4.metric("Emergency Numbers", kpis['Emergency Numbers'])
-#                 col5.metric("Expected Emergency Alarm", kpis['Expected Emergency Alarm'])
-
-#             elif selected_sheet == 'Workforce':
-#                 kpis = calculate_workforce_kpis(df)
-#                 col1, col2, col3, col4, col5 = st.columns([1, 2, 1, 1, 1])
-#                 col1.metric("Operation Percentage", f"{kpis['Operation Percentage']:.2f}%")
-#                 col2.metric("Working Hours", kpis['Working Hours'])
-#                 col3.metric("Evaluation Rate", f"{kpis['Evaluation Rate']:.2f}")
-#                 col4.metric("Complain Numbers", kpis['Complain Numbers'])
-#                 col5.metric("Expected Complaints Alarm", kpis['Expected Complaints Alarm'])
-#                 _, col22,_ = st.columns([1,1.5,1])
-#                 # Display the pie chart in Streamlit
-#                 with col22:
-#                     st.pyplot(kpis['fig'])
-
-#             # Create and display the map
-#             m = create_map(df)
-
-#             folium_static(m, width=1024, height=600)
-
-#             st.dataframe(df)
-
-# # Main page
-# def main_page():
-#     st.title("Main Application Page")
-#     map_page()
-
-# # Main script
-# if __name__ == "__main__":
-#     main_page()
-
-
-
-
-# def map_page():
-#     # Initialize session state if not already
-#     if 'dynamic_mode' not in st.session_state:
-#         st.session_state['dynamic_mode'] = False
-#     if 'route_coords' not in st.session_state:
-#         st.session_state['route_coords'] = []
-
-#     # Load data from a single Excel file called "data.xlsx"
-#     data_url = 'data/data.xlsx'
-#     sheets_dict = load_data(data_url)
-#     sheet_names = list(sheets_dict.keys())
-
-#     # Calculate center coordinates for the map
-#     coordinates = []
-#     for sheet_df in sheets_dict.values():
-#         coordinates += sheet_df[['Latitude', 'Longitude']].values.tolist()
-
-#     center_coordinates = [sum(x) / len(x) for x in zip(*coordinates)]
-
-#     # Create a Folium map using the center coordinates
-#     m = create_map(pd.concat(sheets_dict.values()), [center_coordinates])
-
-
-#     # Custom CSS to expand the tabs
-#     st.markdown("""
-#         <style>
-#         .stTabs [role="tablist"] {
-#             display: flex;
-#             justify-content: space-evenly;
-#             flex-wrap: wrap;
-#         }
-#         .stTabs button {
-#             flex-grow: 1;
-#             flex-basis: 0;
-#             text-align: center;
-#         }
-#         </style>
-#     """, unsafe_allow_html=True)
-    
-#     # Replace dropdown menu with tabs
-#     tab_names = [f"{sheet}" for sheet in sheet_names]
-#     tabs = st.tabs(tab_names)
-
-#     for i, tab in enumerate(tabs):
-#         with tab:
-#             # st.write(f"Showing data for {sheet_names[i]} sheet")
-#             df = sheets_dict[sheet_names[i]]
-
-
-#             # Display KPI metrics depending on the sheet name
-#             if sheet_names[i] == 'Emergency':
-#                 kpis = calculate_Emergency_kpis(df)
-#                 col11, col12, col13, col14, col15 = st.columns([1, 2, 1, 1, 1])
-#                 col11.metric("Closure Percentage", f"{kpis['Closure Percentage']:.2f}%")
-#                 col12.metric("Emergency Closure Time", kpis['Emergency Closure Time'])
-#                 col13.metric("Satisfaction Rate", f"{kpis['Satisfaction Rate']:.2f}%")
-#                 col14.metric("Emergency Numbers", kpis['Emergency Numbers'])
-#                 col15.metric("Expected Emergency Alarm", kpis['Expected Emergency Alarm'])
-
-#             elif sheet_names[i] == 'Workforce':
-#                 kpis = calculate_workforce_kpis(df)
-#                 col11, col12, col13, col14, col15 = st.columns([1, 2, 1, 1, 1])
-#                 col11.metric("Operation Percentage", f"{kpis['Operation Percentage']:.2f}%")
-#                 col12.metric("Working Hours", kpis['Working Hours'])
-#                 col13.metric("Evaluation Rate", f"{kpis['Evaluation Rate']:.2f}")
-#                 col14.metric("Complain Numbers", kpis['Complain Numbers'])
-#                 col15.metric("Expected Complains Alarm", kpis['Expected Complains Alarm'])
-#                 # Display the pie char4
-#                 st.pyplot(kpis['fig'])
-
-
-#     # Display the Folium map
-#     folium_static(m, width=800, height=600)
-
-#     # Display the dataframe in the app
-#     st.dataframe(df)
-
-# # Main Page
-# def main_page():
-#     st.title("Main Application Page")
-#     map_page()
-
-# # Main script
-# if __name__ == "__main__":
-#     main_page()
-#################################################################
-# import streamlit as st
-# import folium
-# import pandas as pd
-# from streamlit_folium import st_folium, folium_static
-# from folium import PolyLine
-# from utils.route_utils import construct_osrm_url, get_trip_data
-# import os
-# from datetime import datetime, time
-# from matplotlib import pyplot as plt
-
-# def calculate_Emergency_kpis(df):
-#     # Strip trailing '*' from column names
-#     df_copy = df.copy()
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
-
-#     # Check if required columns exist
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Satisfaction']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
-
-#     today = datetime.today().date()
-
-#     # Function to parse time whether it includes seconds or not
-#     def parse_time(t):
-#         try:
-#             return pd.to_datetime(t, format='%H:%M:%S').time()
-#         except ValueError:
-#             try:
-#                 return pd.to_datetime(t, format='%H:%M').time()
-#             except ValueError:
-#                 raise ValueError(f"Time format for '{t}' is incorrect")
-
-#     # Ensure 'Open Time' and 'Closure Time' are in time format
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-
-#     # Combine with today's date to create datetime objects
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
-
-#     # Calculate the mean emergency closure time
-#     emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     emergency_closure_time = f"{emergency_closure_time.days} days {emergency_closure_time.seconds // 3600} hrs {(emergency_closure_time.seconds % 3600) // 60} mins"
-
-#     # Calculate Closure Percentage
-#     closure_percentage = (df_copy['Status'] == 'Closed').mean() * 100
-
-#     # Calculate Satisfaction Rate
-#     satisfaction_rate = df_copy['Satisfaction'].str.lower().apply(lambda x: x == 'sattisfied').mean() * 100
-
-#     # Calculate Emergency Numbers as the number of unique incidents based on Latitude and Longitude
-#     df_copy['Location'] = df_copy[['Latitude', 'Longitude']].apply(lambda x: f"{x['Latitude']},{x['Longitude']}", axis=1)
-#     emergency_numbers = df_copy['Location'].nunique()
-
-#     # Placeholder for Expected Emergency Alarm
-#     expected_emergency_alarm = "To be calculated based on relationships"
-
-#     # Return a dictionary with all the calculated KPIs
-#     return {
-#         "Closure Percentage": closure_percentage,
-#         "Emergency Closure Time": emergency_closure_time,
-#         "Satisfaction Rate": satisfaction_rate,
-#         "Emergency Numbers": emergency_numbers,
-#         "Expected Emergency Alarm": expected_emergency_alarm
-#     }
-
-# def calculate_workforce_kpis(df):
-#     # Strip trailing '*' from column names
-#     df_copy = df.copy(deep=False)
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
-
-#     # Check if required columns exist
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Evaluation', 'Complain Today']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
-
-#     today = datetime.today().date()
-
-#     # Function to parse time whether it includes seconds or not
-#     def parse_time(t):
-#         try:
-#             return pd.to_datetime(t, format='%H:%M:%S').time()
-#         except ValueError:
-#             try:
-#                 return pd.to_datetime(t, format='%H:%M').time()
-#             except ValueError:
-#                 raise ValueError(f"Time format for '{t}' is incorrect")
-
-#     # Ensure 'Open Time' and 'Closure Time' are in time format
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-
-#     # Combine with today's date to create datetime objects
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
-
-#     # Calculate the average working hours
-#     working_hours = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     working_hours_str = f"{working_hours.days} days {working_hours.seconds // 3600} hours {(working_hours.seconds % 3600) // 60} min"
-
-#     # Calculate Operation Percentage (Active/Total)
-#     total_operations = len(df_copy)
-#     active_operations = (df_copy['Status'] == 'Active').sum()
-#     operation_percentage = (active_operations / total_operations) * 100
-
-#     # Calculate Evaluation Rate
-#     total_evaluations = df_copy['Evaluation'].sum()
-#     total_responses = len(df_copy)
-#     evaluation_rate = total_evaluations / total_responses if total_responses > 0 else 0
-
-#     # Calculate Complain Numbers
-#     complain_numbers = df_copy['Complain Today'].sum()
-
-#     # Placeholder for Expected Complaints Alarm
-#     expected_complains_alarm = "To be calculated based on relationships"
-
-#     # Generate Pie Chart for Operations
-#     status_counts = df_copy['Operation'].value_counts()  # Group by status and count
-#     fig, ax = plt.subplots(figsize=(1, 1))
-
-#     # Set figure and axes backgrounds to transparent
-#     fig.patch.set_facecolor('none')
-#     ax.set_facecolor('none')
-
-#     ax.pie(status_counts, labels=status_counts.index, autopct='%1.1f%%', startangle=90,textprops={'color': 'white', 'fontsize': 4})
-#     ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-#     plt.title('Operations Status Distribution')
-
-#     # Return a dictionary with all the calculated KPIs
-#     return {
-#         "Operation Percentage": operation_percentage,
-#         "Working Hours": working_hours_str,
-#         "Evaluation Rate": evaluation_rate,
-#         "Complain Numbers": complain_numbers,
-#         "Expected Complains Alarm": expected_complains_alarm,
-#         "fig": fig,
-#     }
-
-
-# # Load data from the specified Excel file
-# @st.cache_data(show_spinner=False)
-# def load_data(file_path):
-#     return pd.read_excel(file_path, sheet_name=None)  # Load all sheets into a dict
-
-# # Cache the creation of the map with all markers
-# @st.cache_data(show_spinner=False)
+# # Function to create map with markers
 # def create_map(df, coordinates):
-#     m = folium.Map(
-#         tiles='https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
-#         attr='OpenStreetMap HOT'
-#     )
+#     m = folium.Map(tiles='https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png', attr='OpenStreetMap HOT')
 #     m.fit_bounds(coordinates)
 
-#     asterisk_columns = [col for col in df.columns if col.endswith('*')]
-#     tooltip_col = asterisk_columns[0] if asterisk_columns else None
-
-#     asterisk_columns = asterisk_columns[1:] if len(asterisk_columns) > 1 else []
-
 #     for idx, row in df.iterrows():
 #         popup_content = "".join(
-#             f"<b>{col[:-1]}:</b> {row[col]}<br>" for col in asterisk_columns
+#             f"<b>{col[:-1]}:</b> {row[col]}<br>" for col in df.columns if col.endswith('*')
 #         )
-        
-#         if 'Status*' in row:
-#             if row['Status*'] in ['Open', 'Inactive']:
-#                 icon_color = 'red'
-#             elif row['Status*'] in ['Closed', 'Active']:
-#                 icon_color = 'green'
-#             elif row['Status*'] in ['Ongoing']:
-#                 icon_color = 'blue'
-#         else:
-#             icon_color = 'blue'
-
-#         marker_id = f"marker_{idx}"
+#         icon_color = 'blue' if row.get('Status*', '') == 'Closed' else 'red'
 #         marker = folium.Marker(
 #             location=[row['Latitude'], row['Longitude']],
-#             popup=f"""
-#                 <div>
-#                     <b>{row[tooltip_col]}</b><br>
-#                     {popup_content}
-#                     <br><br>
-#                     <a href="?marker_id={marker_id}" style="text-decoration:none;"></a>
-#                 </div>
-#             """,
-#             tooltip=row[tooltip_col] if tooltip_col else '',
-#             icon=folium.Icon(color=icon_color, prefix='fa', icon='lightbulb')
+#             popup=f"<b>{row['Location']}</b><br>{popup_content}",
+#             icon=folium.Icon(color=icon_color)
 #         )
 #         marker.add_to(m)
-
 #     return m
 
+# # Main function for the history page
 # def map_page():
-#     # Initialize session state if not already
-#     if 'dynamic_mode' not in st.session_state:
-#         st.session_state['dynamic_mode'] = False
-#     if 'route_coords' not in st.session_state:
-#         st.session_state['route_coords'] = []
+#     st.markdown(
+#         """
+#         <style>
+#         div[data-testid="stAppViewBlockContainer"] { padding: 5px 60px; margin: 0;}
+#         .element-container iframe { width: 100% !important; height: 600px; }
+#         </style>
+#         """, unsafe_allow_html=True)
 
-#     # Load data from a single Excel file called "data.xlsx"
 #     data_url = 'data/data.xlsx'
 #     sheets_dict = load_data(data_url)
 #     sheet_names = list(sheets_dict.keys())
 
-#     # Use tabs to select the sheet
-#     tab_dict = {sheet: st.tab(sheet) for sheet in sheet_names}
-    
-#     # Iterate over the tabs
-#     for sheet_name, tab in tab_dict.items():
-#         with tab:
-#             df = sheets_dict[sheet_name]
-#             st.write(f"**{sheet_name} Sheet Data**")
-#             st.dataframe(df)
+#     st.session_state.setdefault('dynamic_mode', False)
+#     st.session_state.setdefault('route_coords', [])
+#     st.session_state.setdefault('warning_message', "")
+#     st.session_state.setdefault('btn_prsd_status', [False] * len(sheet_names))
+#     st.session_state.setdefault('selected_sheet_index', 0)
 
-#             kpis = {}
-#             if sheet_name == 'Emergency KPIs':
-#                 kpis = calculate_Emergency_kpis(df)
-#             elif sheet_name == 'Workforce KPIs':
-#                 kpis = calculate_workforce_kpis(df)
+#     # Button states and dynamic UI
+#     columns = st.columns(len(sheet_names))
+#     for i, text in enumerate(sheet_names):
+#         if columns[i].button(text):
+#             st.session_state.btn_prsd_status = [False] * len(sheet_names)
+#             st.session_state.btn_prsd_status[i] = True
+#             st.session_state.selected_sheet_index = i
 
-#             # Display the KPIs
-#             st.write("### KPIs")
-#             st.write(f"- Closure Percentage: {kpis.get('Closure Percentage', 'N/A')}%")
-#             st.write(f"- Emergency Closure Time: {kpis.get('Emergency Closure Time', 'N/A')}")
-#             st.write(f"- Satisfaction Rate: {kpis.get('Satisfaction Rate', 'N/A')}%")
-#             st.write(f"- Emergency Numbers: {kpis.get('Emergency Numbers', 'N/A')}")
-#             st.write(f"- Expected Emergency Alarm: {kpis.get('Expected Emergency Alarm', 'N/A')}")
-#             st.write(f"- Operation Percentage: {kpis.get('Operation Percentage', 'N/A')}%")
-#             st.write(f"- Working Hours: {kpis.get('Working Hours', 'N/A')}")
-#             st.write(f"- Evaluation Rate: {kpis.get('Evaluation Rate', 'N/A')}")
-#             st.write(f"- Complain Numbers: {kpis.get('Complain Numbers', 'N/A')}")
-#             st.write(f"- Expected Complains Alarm: {kpis.get('Expected Complains Alarm', 'N/A')}")
-            
-#             # Plot the pie chart for operations
-#             fig = kpis.get('fig')
-#             if fig:
-#                 st.pyplot(fig)
-            
-#             # Create and display the map
-#             coordinates = [[row['Latitude'], row['Longitude']] for idx, row in df.iterrows()]
-#             if coordinates:
-#                 m = create_map(df, coordinates)
-#                 folium_static(m)
-
-
-# if __name__ == '__main__':
-#     st.set_page_config(page_title='GIS KPIs and Map Viewer', layout="wide")
-#     st.sidebar.title('Navigation')
-    
-#     app_mode = st.sidebar.selectbox('Choose the app mode', ['Map Viewer'])
-    
-#     if app_mode == 'Map Viewer':
-#         map_page()
-
-
-# import streamlit as st
-# import folium
-# import pandas as pd
-# from streamlit_folium import st_folium, folium_static
-# from folium import PolyLine
-# from utils.route_utils import construct_osrm_url, get_trip_data
-# import os
-# from datetime import datetime, time
-# from matplotlib import pyplot as plt
-
-
-
-# def calculate_Emergency_kpis(df):
-#     # Strip trailing '*' from column names
-#     df_copy = df.copy()
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
-
-#     # Check if required columns exist
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Satisfaction']
-#     print("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",df_copy.columns)
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
-
-#     today = datetime.today().date()
-
-#     # Function to parse time whether it includes seconds or not
-#     def parse_time(t):
-#         try:
-#             return pd.to_datetime(t, format='%H:%M:%S').time()
-#         except ValueError:
-#             try:
-#                 return pd.to_datetime(t, format='%H:%M').time()
-#             except ValueError:
-#                 raise ValueError(f"Time format for '{t}' is incorrect")
-
-#     # Ensure 'Open Time' and 'Closure Time' are in time format
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-
-#     # Combine with today's date to create datetime objects
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
-
-#     # Calculate the mean emergency closure time
-#     # emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     emergency_closure_time = f"{emergency_closure_time.days} days {emergency_closure_time.seconds // 3600} hrs {(emergency_closure_time.seconds % 3600) // 60} mins"
-
-#     # Calculate Closure Percentage
-#     closure_percentage = (df_copy['Status'] == 'Closed').mean() * 100
-
-#     # Calculate Satisfaction Rate
-#     satisfaction_rate = df_copy['Satisfaction'].str.lower().apply(lambda x: x == 'sattisfied').mean() * 100
-
-#     # Calculate Emergency Numbers as the number of unique incidents based on Latitude and Longitude
-#     df_copy['Location'] = df_copy[['Latitude', 'Longitude']].apply(lambda x: f"{x['Latitude']},{x['Longitude']}", axis=1)
-#     emergency_numbers = df_copy['Location'].nunique()
-
-#     # Placeholder for Expected Emergency Alarm
-#     expected_emergency_alarm = "To be calculated based on relationships"
-
-#     # Return a dictionary with all the calculated KPIs
-#     return {
-#         "Closure Percentage": closure_percentage,
-#         "Emergency Closure Time": emergency_closure_time,
-#         "Satisfaction Rate": satisfaction_rate,
-#         "Emergency Numbers": emergency_numbers,
-#         "Expected Emergency Alarm": expected_emergency_alarm
-#     }
-
-# def calculate_workforce_kpis(df):
-#     # Strip trailing '*' from column names
-#     df_copy = df.copy(deep=False)
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
-
-#     # Check if required columns exist
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Evaluation', 'Complain Today']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
-
-#     today = datetime.today().date()
-
-#     # Function to parse time whether it includes seconds or not
-#     def parse_time(t):
-#         try:
-#             return pd.to_datetime(t, format='%H:%M:%S').time()
-#         except ValueError:
-#             try:
-#                 return pd.to_datetime(t, format='%H:%M').time()
-#             except ValueError:
-#                 raise ValueError(f"Time format for '{t}' is incorrect")
-
-#     # Ensure 'Open Time' and 'Closure Time' are in time format
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-
-#     # Combine with today's date to create datetime objects
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
-
-#     # Calculate the average working hours
-#     working_hours = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     working_hours_str = f"{working_hours.days} days {working_hours.seconds // 3600} hours {(working_hours.seconds % 3600) // 60} min"
-
-#     # Calculate Operation Percentage (Active/Total)
-#     total_operations = len(df_copy)
-#     active_operations = (df_copy['Status'] == 'Active').sum()
-#     operation_percentage = (active_operations / total_operations) * 100
-
-#     # Calculate Evaluation Rate
-#     total_evaluations = df_copy['Evaluation'].sum()
-#     total_responses = len(df_copy)
-#     evaluation_rate = total_evaluations / total_responses if total_responses > 0 else 0
-
-#     # Calculate Complain Numbers
-#     complain_numbers = df_copy['Complain Today'].sum()
-
-#     # Placeholder for Expected Complaints Alarm
-#     expected_complains_alarm = "To be calculated based on relationships"
-
-
-
-#     # Generate Pie Chart for Operations
-#     status_counts = df_copy['Operation'].value_counts()  # Group by status and count
-#     fig, ax = plt.subplots(figsize=(1, 1))
-
-#     # Set figure and axes backgrounds to transparent
-#     fig.patch.set_facecolor('none')
-#     ax.set_facecolor('none')
-
-#     ax.pie(status_counts, labels=status_counts.index, autopct='%1.1f%%', startangle=90,textprops={'color': 'white', 'fontsize': 4})
-#     ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-#     plt.title('Operations Status Distribution')
-
-#     # # Display the pie chart in Streamlit
-#     # st.pyplot(fig)
-
-#     # Return a dictionary with all the calculated KPIs
-#     return {
-#         "Operation Percentage": operation_percentage,
-#         "Working Hours": working_hours_str,
-#         "Evaluation Rate": evaluation_rate,
-#         "Complain Numbers": complain_numbers,
-#         "Expected Complains Alarm": expected_complains_alarm,
-#         "fig": fig,
-#     }
-
-
-# # Load data from the specified Excel file
-# @st.cache_data(show_spinner=False)
-# def load_data(file_path):
-#     return pd.read_excel(file_path, sheet_name=None)  # Load all sheets into a dict
-
-# # Cache the creation of the map with all markers
-# @st.cache_data(show_spinner=False)
-# def create_map(df, coordinates):
-#     m = folium.Map(
-#         tiles='https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
-#         attr='OpenStreetMap HOT'
-#     )
-#     m.fit_bounds(coordinates)
-
-#     asterisk_columns = [col for col in df.columns if col.endswith('*')]
-#     tooltip_col = asterisk_columns[0] if asterisk_columns else None
-
-#     asterisk_columns = asterisk_columns[1:] if len(asterisk_columns) > 1 else []
-
-#     for idx, row in df.iterrows():
-#         popup_content = "".join(
-#             f"<b>{col[:-1]}:</b> {row[col]}<br>" for col in asterisk_columns
-#         )
-        
-#         if 'Status*' in row:
-#             if row['Status*'] in ['Open', 'Inactive']:
-#                 icon_color = 'red'
-#             elif row['Status*'] in ['Closed', 'Active']:
-#                 icon_color = 'green'
-#             elif row['Status*'] in ['Ongoing']:
-#                 icon_color = 'blue'
-#         else:
-#             icon_color = 'blue'
-
-#         marker_id = f"marker_{idx}"
-#         marker = folium.Marker(
-#             location=[row['Latitude'], row['Longitude']],
-#             popup=f"""
-#                 <div>
-#                     <b>{row[tooltip_col]}</b><br>
-#                     {popup_content}
-#                     <br><br>
-#                     <a href="?marker_id={marker_id}" style="text-decoration:none;"></a>
-#                 </div>
-#             """,
-#             tooltip=row[tooltip_col] if tooltip_col else '',
-#             icon=folium.Icon(color=icon_color, prefix='fa', icon='lightbulb')
-#         )
-#         marker.add_to(m)
-
-#     return m
-
-# def map_page():
-#     # Initialize session state if not already
-#     if 'dynamic_mode' not in st.session_state:
-#         st.session_state['dynamic_mode'] = False
-#     if 'route_coords' not in st.session_state:
-#         st.session_state['route_coords'] = []
-
-#     # Load data from a single Excel file called "data.xlsx"
-#     data_url = 'data/data.xlsx'
-#     sheets_dict = load_data(data_url)
-#     sheet_names = list(sheets_dict.keys())
-
-#     # Use a single dropdown menu to select the sheet
-#     selected_sheet = st.selectbox('Select Sheet', sheet_names)
-
+#     selected_sheet = sheet_names[st.session_state.selected_sheet_index]
 #     df = sheets_dict[selected_sheet]
-#     print(df.columns)
 #     coordinates = df[['Latitude', 'Longitude']].values.tolist()
 
-#     # Check the selected sheet and calculate KPIs accordingly
+#     # Display KPIs based on the selected sheet
 #     if selected_sheet == "Emergency":
-#         kpis = calculate_Emergency_kpis(df)
-#         st.write("## Key Performance Indicators (KPIs)")
-#         col11, col12, col13, col14, col15 = st.columns([1, 2, 1, 1, 1])
-#         col11.metric("Closure Percentage", f"{kpis['Closure Percentage']:.2f}%")
-#         col12.metric("Emergency Closure Time", f"{kpis['Emergency Closure Time']}")
-#         col13.metric("Satisfaction Rate", f"{kpis['Satisfaction Rate']:.2f}%")
-#         col14.metric("Emergency Numbers", kpis['Emergency Numbers'])
-#         col15.write(f"Expected Emergency Alarm: {kpis['Expected Emergency Alarm']}")
-
+#         kpis = calculate_emergency_kpis(df)
 #     elif selected_sheet == "Workforce":
 #         kpis = calculate_workforce_kpis(df)
-#         st.write("## Key Performance Indicators (KPIs)")
-#         col11, col12, col13, col14, col15 = st.columns([1, 2, 1, 1, 1])
-#         col11.metric("Operation Percentage", f"{kpis['Operation Percentage']:.2f}%")
-#         col12.metric("Working Hours", kpis['Working Hours'])
-#         col13.metric("Evaluation Rate", f"{kpis['Evaluation Rate']:.2f}")
-#         col14.metric("Complain Numbers", kpis['Complain Numbers'])
-#         col15.write(f"Expected Complains Alarm: {kpis['Expected Complains Alarm']}")
 
-#         col21, col22, col23 = st.columns([1, 2, 1])
-#         with col22:
-#             st.pyplot(kpis['fig'])
 
-#     # Create the map with markers
+#     # col1, col2, col3, col4, col5 = st.columns([1, 2, 1, 1, 1])
+#     # for metric, value in kpis.items():
+#     #     if isinstance(value, str):
+#     #         col1.metric(metric, value)
+#     #     elif isinstance(value, float):
+#     #         col2.metric(metric, f"{value:.2f}%")
+    
+#     # Create and display map
 #     m = create_map(df, coordinates)
+#     folium_static(m)
 
-#     # Add route to the map if it exists
+#     # Display route if available
 #     if st.session_state['route_coords']:
 #         PolyLine(st.session_state['route_coords'], color="blue", weight=2.5, opacity=1).add_to(m)
 
-#     # Conditionally render the map based on mode
-#     if st.session_state['dynamic_mode']:
-#         st_data = st_folium(m, height=500, width=1040)
-#     else:
-#         st_data = folium_static(m, height=500, width=1040)
+# # import streamlit as st
+# # import pandas as pd
+# # import streamlit.components.v1 as components
+# # import folium
+# # from streamlit_folium import st_folium, folium_static
+# # from datetime import datetime
+# # from matplotlib import pyplot as plt
+# # from utils.route_utils import construct_osrm_url, get_trip_data
+# # from folium import PolyLine
 
-#     # Handle marker clicks in dynamic mode
-#     if st.session_state['dynamic_mode'] and st_data.get("last_object_clicked_popup") is not None:
-#         st.session_state['selected_marker'] = st_data["last_object_clicked_popup"]
+# # # Load data from Excel
+# # def load_data(file_path):
+# #     return pd.read_excel(file_path, sheet_name=None)
 
-#     # Display data table with collapsible view
-#     with st.expander(f'{selected_sheet} Table', expanded=True):
-#         st.dataframe(df, width=950, height=300)
+# # def calculate_emergency_kpis(df):
+# #     # Strip trailing '*' from column names
+# #     df_copy = df.copy()
+# #     df_copy.columns = df_copy.columns.str.rstrip('*')
 
-#     # Display warning message in the sidebar if it exists
-#     if 'warning_message' in st.session_state and st.session_state['warning_message']:
-#         st.sidebar.warning(st.session_state['warning_message'])
+# #     # Check if required columns exist
+# #     required_columns = ['Open Time', 'Closure Time', 'Status', 'Satisfaction']
+# #     for col in required_columns:
+# #         if col not in df_copy.columns:
+# #             raise ValueError(f"Column '{col}' is missing from the DataFrame")
 
-# # Run the map page
-# map_page()
-#########################################################
+# #     today = datetime.today().date()
 
+# #     # Function to parse time whether it includes seconds or not
+# #     def parse_time(t):
+# #         try:
+# #             return pd.to_datetime(t, format='%H:%M:%S').time()
+# #         except ValueError:
+# #             try:
+# #                 return pd.to_datetime(t, format='%H:%M').time()
+# #             except ValueError:
+# #                 raise ValueError(f"Time format for '{t}' is incorrect")
 
+# #     # Ensure 'Open Time' and 'Closure Time' are in time format
+# #     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
+# #     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
 
-# import streamlit as st
-# import folium
-# import pandas as pd
-# from streamlit_folium import st_folium, folium_static
-# from folium import PolyLine
-# from utils.route_utils import construct_osrm_url, get_trip_data
-# import os
-# from datetime import datetime, time
-# from matplotlib import pyplot as plt
+# #     # Combine with today's date to create datetime objects
+# #     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
+# #     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
 
-# def calculate_Emergency_kpis(df):
-#     # Strip trailing '*' from column names
-#     df_copy = df.copy()
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
+# #     # Calculate the mean emergency closure time
+# #     # emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
+# #     emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
+# #     emergency_closure_time = f"{emergency_closure_time.days} days {emergency_closure_time.seconds // 3600} hrs {(emergency_closure_time.seconds % 3600) // 60} mins"
 
-#     # Check if required columns exist
-#     required_columns = ['Open Time', 'Closure Time', 'Status', 'Satisfaction']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
+# #     # Calculate Closure Percentage
+# #     closure_percentage = (df_copy['Status'] == 'Closed').mean() * 100
 
-#     today = datetime.today().date()
+# #     # Calculate Satisfaction Rate
+# #     satisfaction_rate = df_copy['Satisfaction'].str.lower().apply(lambda x: x == 'sattisfied').mean() * 100
 
-#     # Function to parse time whether it includes seconds or not
-#     def parse_time(t):
-#         try:
-#             return pd.to_datetime(t, format='%H:%M:%S').time()
-#         except ValueError:
-#             try:
-#                 return pd.to_datetime(t, format='%H:%M').time()
-#             except ValueError:
-#                 raise ValueError(f"Time format for '{t}' is incorrect")
+# #     # Calculate Emergency Numbers as the number of unique incidents based on Latitude and Longitude
+# #     df_copy['Location'] = df_copy[['Latitude', 'Longitude']].apply(lambda x: f"{x['Latitude']},{x['Longitude']}", axis=1)
+# #     emergency_numbers = df_copy['Location'].nunique()
 
-#     # Ensure 'Open Time' and 'Closure Time' are in time format
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
+# #     # Placeholder for Expected Emergency Alarm
+# #     expected_emergency_alarm = "To be calculated based on relationships"
 
-#     # Combine with today's date to create datetime objects
-#     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
+# #     # Return a dictionary with all the calculated KPIs
+# #     return {
+# #         "Closure Percentage": closure_percentage,
+# #         "Emergency Closure Time": emergency_closure_time,
+# #         "Satisfaction Rate": satisfaction_rate,
+# #         "Emergency Numbers": emergency_numbers,
+# #         "Expected Emergency Alarm": expected_emergency_alarm
+# #     }
 
-#     # Calculate the mean emergency closure time
-#     # emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     emergency_closure_time = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
-#     emergency_closure_time = f"{emergency_closure_time.days} days {emergency_closure_time.seconds // 3600} hrs {(emergency_closure_time.seconds % 3600) // 60} mins"
+# # def calculate_workforce_kpis(df):
+# #     # Strip trailing '*' from column names
+# #     df_copy = df.copy(deep=False)
+# #     df_copy.columns = df_copy.columns.str.rstrip('*')
 
-#     # Calculate Closure Percentage
-#     closure_percentage = (df_copy['Status'] == 'Closed').mean() * 100
+# #     # Check if required columns exist
+# #     required_columns = ['Open Time', 'Closure Time', 'Status', 'Evaluation', 'Complain Today']
+# #     for col in required_columns:
+# #         if col not in df_copy.columns:
+# #             raise ValueError(f"Column '{col}' is missing from the DataFrame")
 
-#     # Calculate Satisfaction Rate
-#     satisfaction_rate = df_copy['Satisfaction'].str.lower().apply(lambda x: x == 'sattisfied').mean() * 100
+# #     today = datetime.today().date()
 
-#     # Calculate Emergency Numbers as the number of unique incidents based on Latitude and Longitude
-#     df_copy['Location'] = df_copy[['Latitude', 'Longitude']].apply(lambda x: f"{x['Latitude']},{x['Longitude']}", axis=1)
-#     emergency_numbers = df_copy['Location'].nunique()
+# #     # Function to parse time whether it includes seconds or not
+# #     def parse_time(t):
+# #         try:
+# #             return pd.to_datetime(t, format='%H:%M:%S').time()
+# #         except ValueError:
+# #             try:
+# #                 return pd.to_datetime(t, format='%H:%M').time()
+# #             except ValueError:
+# #                 raise ValueError(f"Time format for '{t}' is incorrect")
 
-#     # Placeholder for Expected Emergency Alarm
-#     expected_emergency_alarm = "To be calculated based on relationships"
+# #     # Ensure 'Open Time' and 'Closure Time' are in time format
+# #     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
+# #     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
 
-#     # Return a dictionary with all the calculated KPIs
-#     return {
-#         "Closure Percentage": closure_percentage,
-#         "Emergency Closure Time": emergency_closure_time,
-#         "Satisfaction Rate": satisfaction_rate,
-#         "Emergency Numbers": emergency_numbers,
-#         "Expected Emergency Alarm": expected_emergency_alarm
-#     }
+# #     # Combine with today's date to create datetime objects
+# #     df_copy['Open Time'] = df_copy['Open Time'].apply(lambda x: datetime.combine(today, x))
+# #     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
 
-# def calculate_workforce_kpis(df):
-#     # Strip trailing '*' from column names
-#     df_copy = df.copy(deep=False)
-#     df_copy.columns = df_copy.columns.str.rstrip('*')
+# #     # Calculate the average working hours
+# #     working_hours = (df_copy['Closure Time'] - df_copy['Open Time']).mean()
+# #     working_hours_str = f"{working_hours.days} days {working_hours.seconds // 3600} hours {(working_hours.seconds % 3600) // 60} min"
 
-#     # Check if required columns exist
-#     required_columns = ['Open-Time', 'Closure Time', 'Status', 'Evaluation', 'Complain Today']
-#     for col in required_columns:
-#         if col not in df_copy.columns:
-#             raise ValueError(f"Column '{col}' is missing from the DataFrame")
+# #     # Calculate Operation Percentage (Active/Total)
+# #     total_operations = len(df_copy)
+# #     active_operations = (df_copy['Status'] == 'Active').sum()
+# #     operation_percentage = (active_operations / total_operations) * 100
 
-#     today = datetime.today().date()
+# #     # Calculate Evaluation Rate
+# #     total_evaluations = df_copy['Evaluation'].sum()
+# #     total_responses = len(df_copy)
+# #     evaluation_rate = total_evaluations / total_responses if total_responses > 0 else 0
 
-#     # Function to parse time whether it includes seconds or not
-#     def parse_time(t):
-#         try:
-#             return pd.to_datetime(t, format='%H:%M:%S').time()
-#         except ValueError:
-#             try:
-#                 return pd.to_datetime(t, format='%H:%M').time()
-#             except ValueError:
-#                 raise ValueError(f"Time format for '{t}' is incorrect")
+# #     # Calculate Complain Numbers
+# #     complain_numbers = df_copy['Complain Today'].sum()
 
-#     # Ensure 'Open-Time' and 'Closure Time' are in time format
-#     df_copy['Open-Time'] = df_copy['Open-Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: parse_time(x.time() if isinstance(x, datetime) else x))
-
-#     # Combine with today's date to create datetime objects
-#     df_copy['Open-Time'] = df_copy['Open-Time'].apply(lambda x: datetime.combine(today, x))
-#     df_copy['Closure Time'] = df_copy['Closure Time'].apply(lambda x: datetime.combine(today, x))
-
-#     # Calculate the average working hours
-#     working_hours = (df_copy['Closure Time'] - df_copy['Open-Time']).mean()
-#     working_hours_str = f"{working_hours.days} days {working_hours.seconds // 3600} hours {(working_hours.seconds % 3600) // 60} min"
-
-#     # Calculate Operation Percentage (Active/Total)
-#     total_operations = len(df_copy)
-#     active_operations = (df_copy['Status'] == 'Active').sum()
-#     operation_percentage = (active_operations / total_operations) * 100
-
-#     # Calculate Evaluation Rate
-#     total_evaluations = df_copy['Evaluation'].sum()
-#     total_responses = len(df_copy)
-#     evaluation_rate = total_evaluations / total_responses if total_responses > 0 else 0
-
-#     # Calculate Complain Numbers
-#     complain_numbers = df_copy['Complain Today'].sum()
-
-#     # Placeholder for Expected Complaints Alarm
-#     expected_complains_alarm = "To be calculated based on relationships"
+# #     # Placeholder for Expected Complaints Alarm
+# #     expected_complains_alarm = "To be calculated based on relationships"
 
 
 
-#     # Generate Pie Chart for Operations
-#     status_counts = df_copy['Operation'].value_counts()  # Group by status and count
-#     fig, ax = plt.subplots(figsize=(1, 1))
+# #     # Generate Pie Chart for Operations
+# #     status_counts = df_copy['Operation'].value_counts()  # Group by status and count
+# #     fig, ax = plt.subplots(figsize=(1, 1))
 
-#     # Set figure and axes backgrounds to transparent
-#     fig.patch.set_facecolor('none')
-#     ax.set_facecolor('none')
+# #     # Set figure and axes backgrounds to transparent
+# #     fig.patch.set_facecolor('none')
+# #     ax.set_facecolor('none')
 
-#     ax.pie(status_counts, labels=status_counts.index, autopct='%1.1f%%', startangle=90,textprops={'color': 'white', 'fontsize': 4})
-#     ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-#     plt.title('Operations Status Distribution')
+# #     ax.pie(status_counts, labels=status_counts.index, autopct='%1.1f%%', startangle=90,textprops={'color': 'white', 'fontsize': 4})
+# #     ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+# #     plt.title('Operations Status Distribution')
 
-#     # # Display the pie chart in Streamlit
-#     # st.pyplot(fig)
+# #     # # Display the pie chart in Streamlit
+# #     # st.pyplot(fig)
 
-#     # Return a dictionary with all the calculated KPIs
-#     return {
-#         "Operation Percentage": operation_percentage,
-#         "Working Hours": working_hours_str,
-#         "Evaluation Rate": evaluation_rate,
-#         "Complain Numbers": complain_numbers,
-#         "Expected Complains Alarm": expected_complains_alarm,
-#         "fig": fig,
-#     }
+# #     # Return a dictionary with all the calculated KPIs
+# #     return {
+# #         "Operation Percentage": operation_percentage,
+# #         "Working Hours": working_hours_str,
+# #         "Evaluation Rate": evaluation_rate,
+# #         "Complain Numbers": complain_numbers,
+# #         "Expected Complains Alarm": expected_complains_alarm,
+# #         "fig": fig,
+# #     }
 
 
 
 
 
-# # Load data from Excel, including multiple sheets
-# def load_data(data_url):
-#     return pd.read_excel(data_url, sheet_name=None)  # Load all sheets into a dict
+# # # Function to create map
+# # def create_map(df, coordinates):
+# #     m = folium.Map(
+# #         tiles='https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
+# #         attr='OpenStreetMap HOT'
+# #     )
+# #     m.fit_bounds(coordinates)
 
-# # Cache the creation of the map with all markers
-# @st.cache_data(show_spinner=False)
-# def create_map(df, coordinates):
-#     m = folium.Map(
-#         tiles='https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
-#         attr='OpenStreetMap HOT'
-#     )
-#     m.fit_bounds(coordinates)
+# #     asterisk_columns = [col for col in df.columns if col.endswith('*')]
+# #     tooltip_col = asterisk_columns[0] if asterisk_columns else None
+# #     asterisk_columns = asterisk_columns[1:] if len(asterisk_columns) > 1 else []
 
-#     asterisk_columns = [col for col in df.columns if col.endswith('*')]
-#     print("AAAAAAAAAAAAAAAAAAAAAAAAAAAA",df.columns)
-#     tooltip_col = asterisk_columns[0] if asterisk_columns else None
-#     print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",tooltip_col)
-#     asterisk_columns = asterisk_columns[1:] if len(asterisk_columns) > 1 else []
-
-#     for idx, row in df.iterrows():
-#         popup_content = "".join(
-#             f"<b>{col[:-1]}:</b> {row[col]}<br>" for col in asterisk_columns
-#         )
+# #     for idx, row in df.iterrows():
+# #         popup_content = "".join(
+# #             f"<b>{col[:-1]}:</b> {row[col]}<br>" for col in asterisk_columns
+# #         )
         
-#         if 'Status*' in row:
-#             icon_color = 'blue' if row['Status*'] == 'Closed' else 'red'    
-#         else:
-#             icon_color = 'blue'
+# #         icon_color = 'blue' if row.get('Status*', '') == 'Closed' else 'red'
 
-#         marker_id = f"marker_{idx}"
-#         marker = folium.Marker(
-#             location=[row['Latitude'], row['Longitude']],
-#             popup=f"""
-#                 <div>
-#                     <b>{row[tooltip_col]}</b><br>
-#                     {popup_content}
-#                     <br><br>
-#                     <a href="?marker_id={marker_id}" style="text-decoration:none;"></a>
-#                 </div>
-#             """,
-#             tooltip=row[tooltip_col] if tooltip_col else '',
-#             icon=folium.Icon(color=icon_color, prefix='fa', icon='lightbulb')
-#         )
-#         marker.add_to(m)
+# #         marker_id = f"marker_{idx}"
+# #         marker = folium.Marker(
+# #             location=[row['Latitude'], row['Longitude']],
+# #             popup=f"""
+# #                 <div>
+# #                     <b>{row[tooltip_col]}</b><br>
+# #                     {popup_content}
+# #                     <br><br>
+# #                     <a href="?marker_id={marker_id}" style="text-decoration:none;"></a>
+# #                 </div>
+# #             """,
+# #             tooltip=row[tooltip_col] if tooltip_col else '',
+# #             icon=folium.Icon(color=icon_color, prefix='fa', icon='lightbulb')
+# #         )
+# #         marker.add_to(m)
+# #     return m
 
-#     return m
+# # # Main function for the history page
+# # def map_page():
 
-# def map_page():
-#     # List files in the data folder
-#     data_folder = 'data'
-#     files = [f for f in os.listdir(data_folder) if f.endswith('.xlsx') and not f.startswith('~$')]
-#     file_options = [os.path.splitext(f)[0] for f in files]  # Remove file extension
+# #     st.markdown(
+# #         """
+# #         <style>
+# #         div[data-testid="stAppViewBlockContainer"] {
+# #         padding-top: 5px;
+# #         padding-bottom: 5px;
+# #         padding-right: 60px;
+# #         padding-left: 60px;
+# #         margin: 0;}
 
-#     # Initialize session state if not already
-#     if 'dynamic_mode' not in st.session_state:
-#         st.session_state['dynamic_mode'] = False
-#     if 'route_coords' not in st.session_state:
-#         st.session_state['route_coords'] = []
+# #         .element-container iframe {
+# #         width: 100% !important;
+# #         height: 600px;  /* Adjust the height as needed */
+# #         }
 
-#     # Columns layout
-#     col1, col2, col3, col4, col5, col6 = st.columns([3, 7, 6,4, 1, 1], gap="small", vertical_alignment="bottom")
+        
+# #         </style>
+# #         """, unsafe_allow_html=True)
 
-#     with col1:
-#         st.write('Select System')
-
-#     with col2:
-#         selected_file = st.selectbox('Select System', file_options, label_visibility="collapsed")
-
-#     # Check if a file has been selected
-#     if selected_file:
-#         data_url = os.path.join(data_folder, f"{selected_file}.xlsx")
-#         sheets_dict = load_data(data_url)
-#         sheet_names = list(sheets_dict.keys())
-
-#         with col3:
-#             selected_sheet = st.selectbox('Select Sheet', sheet_names)
-
-#         df = sheets_dict[selected_sheet]
-#         coordinates = df[['Latitude', 'Longitude']].values.tolist()
-
-#         # Extract the file name without extension for the header
-#         file_name = selected_file.capitalize()
-
-#         with col5:
-#             if st.button('🗺️'):
-#                 if len(coordinates) >= 2:
-#                     # Check if number of waypoints exceeds OSRM limit
-#                     if len(coordinates) > 100:
-#                         st.session_state['warning_message'] = "The number of waypoints exceeds the OSRM limit of 100. Please reduce the number of locations."
-#                     else:
-#                         osrm_url = construct_osrm_url(coordinates[0], coordinates[-1], coordinates[1:-1])
-#                         trip_data = get_trip_data(osrm_url)
-
-#                         route_coords = trip_data['trips'][0]['geometry']['coordinates']
-#                         route_coords = [(lat, lon) for lon, lat in route_coords]
-
-#                         st.session_state['route_coords'] = route_coords
-#                         st.session_state['warning_message'] = None  # Clear warning message
-
-#         with col6:
-#             if st.button("🖱️"):
-#                 st.session_state['dynamic_mode'] = not st.session_state['dynamic_mode']
+# #     # Load data from Excel
+# #     data_url = 'data/data.xlsx'
+# #     sheets_dict = load_data(data_url)
+# #     sheet_names = list(sheets_dict.keys())
 
 
-#         if selected_sheet == "Emergency" :
-#                 # Call the KPI calculation function
-#                 kpis = calculate_Emergency_kpis(df)
-
-#                 # Display the KPIs
-#                 st.write("## Key Performance Indicators (KPIs)")
-#                 col11, col12, col13, col14, col15 = st.columns([1,2,1,1,1])
-#                 col11.metric("Closure Percentage", f"{kpis['Closure Percentage']:.2f}%")
-#                 col12.metric("Emergency Closure Time", f"{kpis['Emergency Closure Time']}")
-#                 col13.metric("Satisfaction Rate", f"{kpis['Satisfaction Rate']:.2f}%")
-#                 col14.metric("Emergency Numbers", kpis['Emergency Numbers'])
-#                 col15.write(f"Expected Emergency Alarm: {kpis['Expected Emergency Alarm']}")
-
-#         elif selected_sheet == "Workforce" :
-#             # Call the KPI calculation function
-#             kpis = calculate_workforce_kpis(df)
-
-#             # Display the KPIs in Streamlit
-#             st.write("## Key Performance Indicators (KPIs)")
-#             col11, col12, col13, col14, col15 = st.columns([1, 2, 1, 1, 1])
-#             col11.metric("Operation Percentage", f"{kpis['Operation Percentage']:.2f}%")
-#             col12.metric("Working Hours", kpis['Working Hours'])
-#             col13.metric("Evaluation Rate", f"{kpis['Evaluation Rate']:.2f}")
-#             col14.metric("Complain Numbers", kpis['Complain Numbers'])
-#             col15.write(f"Expected Complains Alarm: {kpis['Expected Complains Alarm']}")
 
 
-#             col21, col22, col23 = st.columns([1,2,1])
-#             # # Display the pie chart in Streamlit
-#             with col22:
-#                 st.pyplot(kpis['fig'])
 
-#         # Create the map with markers
-#         m = create_map(df, coordinates)
+# #     # Initialize session state if not already
+# #     if 'dynamic_mode' not in st.session_state:
+# #         st.session_state['dynamic_mode'] = False
+# #     if 'route_coords' not in st.session_state:
+# #         st.session_state['route_coords'] = []
+# #     if 'warning_message' not in st.session_state:
+# #         st.session_state['warning_message']=""  # Flag to determine if the map needs updating
 
-#         # Add route to the map if it exists
-#         if st.session_state['route_coords']:
-#             PolyLine(st.session_state['route_coords'], color="blue", weight=2.5, opacity=1).add_to(m)
+# #     # Initialize button states and message in session state
+# #     mystate = st.session_state
+# #     if "btn_prsd_status" not in mystate:
+# #         mystate.btn_prsd_status = [False] * len(sheet_names)
+# #     # if "message" not in mystate:
+# #     #     mystate.message = "Select a sheet to see the message here."
+# #     if "selected_sheet_index" not in mystate:
+# #         mystate.selected_sheet_index = 0
 
-#         # Conditionally render the map based on mode
-#         if st.session_state['dynamic_mode']:
-#             st_data = st_folium(m, height=500, width=1040)
-#         else:
-#             st_data = folium_static(m, height=500, width=1040)
+# #     unpressed_font_color = "#FFFFFF"  # White font for unpressed buttons
+# #     pressed_font_color = "#ff4b4b"  # Red font for pressed buttons
+# #     unpressed_border_color = "#26282E"  # Dark border for unpressed buttons
+# #     pressed_border_color = "#ff4b4b"  # Red border for pressed buttons
+# #     hover_font_color = "#ff4b4b"  # Red font color on hover
 
-#         # Handle marker clicks in dynamic mode
-#         if st.session_state['dynamic_mode'] and st_data.get("last_object_clicked_popup") is not None:
-#             st.session_state['selected_marker'] = st_data["last_object_clicked_popup"]
+# #     def ChangeButtonColour(widget_label, prsd_status):
+# #         # Change button font color dynamically using JavaScript
+# #         font_color = pressed_font_color if prsd_status else unpressed_font_color
+# #         border_color = pressed_border_color if prsd_status else unpressed_border_color
 
-#         # Display data table with collapsible view
-#         with st.expander(f'{file_name} - {selected_sheet} Table', expanded=True):
-#             st.dataframe(df, width=950, height=300)
+# #         htmlstr = f"""
+# #             <script>
+# #                 var elements = window.parent.document.querySelectorAll('button');
+# #                 for (var i = 0; i < elements.length; ++i) {{
+# #                     if (elements[i].innerText == '{widget_label}') {{
+# #                         elements[i].style.background = 'none';  // No background color
+# #                         elements[i].style.border = 'none';  // No border
+# #                         elements[i].style.color = '{font_color}';  // Change font color
+# #                         elements[i].style.fontWeight = 'bold';  // Optionally, make text bold
+# #                         elements[i].style.cursor = 'pointer';  // Pointer on hover
+# #                         elements[i].style.borderBottom = '2px solid {border_color}';
+# #                         elements[i].style.width = '100%';  // Full width
+# #                         elements[i].style.padding = '0';  // Remove padding
+# #                         elements[i].style.borderRadius = '0';  // No rounded corners
 
-#         # Display warning message in the sidebar if it exists
-#         if 'warning_message' in st.session_state and st.session_state['warning_message']:
-#             st.sidebar.warning(st.session_state['warning_message'])
+# #                         // Add hover effect
+# #                         elements[i].onmouseover = function() {{
+# #                             this.style.color = '{hover_font_color}';  // Red font color on hover
+# #                         }};
+# #                         elements[i].onmouseout = function() {{
+# #                             this.style.color = '{font_color}';  // Restore original font color when not hovering
+# #                         }};
+# #                     }}
+# #                 }}
+# #             </script>
+# #         """
+# #         components.html(htmlstr, height=0, width=0)
+
+# #     def ChkBtnStatusAndAssignColour():
+# #         # Check button statuses and assign the appropriate color
+# #         for i in range(len(sheet_names)):
+# #             ChangeButtonColour(sheet_names[i], mystate.btn_prsd_status[i])
+
+# #     def btn_pressed_callback(i):
+# #         # Update session state when a button is pressed
+# #         mystate.btn_prsd_status = [False] * len(sheet_names)
+# #         mystate.btn_prsd_status[i] = True
+# #         mystate.selected_sheet_index = i
+# #         # mystate.message = f'You clicked {sheet_names[i]}!'
+
+# #     # Create columns for each button (sheet)
+# #     columns = st.columns(len(sheet_names))
+
+# #     for i, text in enumerate(sheet_names):
+# #         # Create a button for each sheet name and retain its clicked state
+# #         if columns[i].button(text, key=f"btn_{i}", on_click=btn_pressed_callback, args=(i,)):
+# #             # The button press will trigger the callback and update the message
+# #             pass
+
+# #     # # Display the message
+# #     # st.write(mystate.message)
+
+
+
+# #     # Check if any sheet is selected
+# #     if mystate.selected_sheet_index is not None:
+# #         selected_sheet = sheet_names[mystate.selected_sheet_index]
+# #         df = sheets_dict[selected_sheet]
+# #         coordinates = df[['Latitude', 'Longitude']].values.tolist()
+
+# #         if selected_sheet == "Emergency" :
+# #                 # Call the KPI calculation function
+# #                 kpis = calculate_emergency_kpis(df)
+
+# #                 # Display the KPIs
+# #                 st.write("## Key Performance Indicators (KPIs)")
+# #                 col11, col12, col13, col14, col15 = st.columns([1,2,1,1,1])
+# #                 col11.metric("Closure Percentage", f"{kpis['Closure Percentage']:.2f}%")
+# #                 col12.metric("Emergency Closure Time", f"{kpis['Emergency Closure Time']}")
+# #                 col13.metric("Satisfaction Rate", f"{kpis['Satisfaction Rate']:.2f}%")
+# #                 col14.metric("Emergency Numbers", kpis['Emergency Numbers'])
+# #                 col15.write(f"Expected Emergency Alarm: {kpis['Expected Emergency Alarm']}")
+
+# #         elif selected_sheet == "Workforce" :
+# #             # Call the KPI calculation function
+# #             kpis = calculate_workforce_kpis(df)
+
+# #             # Display the KPIs in Streamlit
+# #             st.write("## Key Performance Indicators (KPIs)")
+# #             col11, col12, col13, col14, col15 = st.columns([1, 2, 1, 1, 1])
+# #             col11.metric("Operation Percentage", f"{kpis['Operation Percentage']:.2f}%")
+# #             col12.metric("Working Hours", kpis['Working Hours'])
+# #             col13.metric("Evaluation Rate", f"{kpis['Evaluation Rate']:.2f}")
+# #             col14.metric("Complain Numbers", kpis['Complain Numbers'])
+# #             col15.write(f"Expected Complains Alarm: {kpis['Expected Complains Alarm']}")
+
+
+# #             # col21, col22, col23 = st.columns([1,2,1])
+# #             # # Display the pie chart in Streamlit
+# #             # with col22:
+# #             #     st.pyplot(kpis['fig'])
+
+# #         # Display map
+# #         m = create_map(df, coordinates)
+        
+# #         # Add route to the map if it exists
+# #         if st.session_state['route_coords']:
+# #             PolyLine(st.session_state['route_coords'], color="blue", weight=2.5, opacity=1).add_to(m)
+        
+# #         # # Conditionally render the map based on mode
+# #         # if st.session_state['dynamic_mode']:
+# #         #     st_folium(m)
+# #         # else:
+# #         #     folium_static(m)
+        
+# #         folium_static(m)
+
+# #         col31, col32, col33,col34, col35,col36 = st.columns([4,1,1,1,1,4])
+# #         with col32:
+# #             if st.button('🗺️',use_container_width=True):
+# #                 if len(coordinates) >= 2:
+# #                     # Check if number of waypoints exceeds OSRM limit
+# #                     if len(coordinates) > 100:
+# #                         st.session_state['warning_message'] = "The number of waypoints exceeds the OSRM limit of 100. Please reduce the number of locations."
+# #                     else:
+# #                         osrm_url = construct_osrm_url(coordinates[0], coordinates[-1], coordinates[1:-1])
+# #                         trip_data = get_trip_data(osrm_url)
+
+
+# #                         route_coords = trip_data['trips'][0]['geometry']['coordinates']
+# #                         route_coords = [(lat, lon) for lon, lat in route_coords]
+
+# #                         st.session_state['route_coords'] = route_coords
+# #                         st.session_state['warning_message'] = None  # Clear warning message
+
+# #                         # Force a rerun of the app to refresh the map with the new route
+# #                         st.rerun()
+
+
+# #         with col33:
+# #             if st.button("🖱️",use_container_width=True):
+# #                 st.session_state['dynamic_mode'] = not st.session_state['dynamic_mode']
+
+
+# #         with col34:
+# #             if st.button("✨",use_container_width=True):
+# #                 pass
+
+# #         with col35:
+# #             if st.button("📊",use_container_width=True):
+# #                 pass
+
+# #         if st.session_state['warning_message']:
+# #             st.warning ("The number of waypoints exceeds the OSRM limit of 100. Please reduce the number of locations.")
+
+
+
+# #         # Display the DataFrame
+# #         st.dataframe(df, use_container_width=True)
+
+
+# #     # Apply the correct button colors after rendering the buttons
+# #     ChkBtnStatusAndAssignColour()
+
+# # # Call the function to display the history page
+# # map_page()
