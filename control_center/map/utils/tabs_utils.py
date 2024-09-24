@@ -43,7 +43,7 @@ def ChangeButtonColour(widget_label, prsd_status):
     components.html(htmlstr, height=0, width=0)
 
 
-def render_sheet_buttons(sheet_names, mystate):
+def render_sheet_tabs(sheet_names, mystate):
 
     def btn_pressed_callback(i):
         # Update session state when a button is pressed
