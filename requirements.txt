@@ -16,3 +16,4 @@ extra-streamlit-components
 pytubefix
 yt-dlp
 easyocr
+streamlit-aggrid
