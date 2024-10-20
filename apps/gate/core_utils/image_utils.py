@@ -43,12 +43,13 @@ def clip_plate(frame: np.ndarray, license_plates_bbox: List[BBox]) -> np.ndarray
 #     return clipped_frame
 
 
-def draw_bounding_box(frame: np.ndarray, vehicles_bbox: List[BBox], license_plates_bbox: List[BBox], 
-                      vehicle_names: List[str], license_plate_names: List[str]) -> np.ndarray:
-    for bbox in vehicles_bbox:
-        cv2.rectangle(frame, (bbox.x1, bbox.y1), (bbox.x2, bbox.y2), (0, 255, 0), 1)
-        cv2.putText(frame, f"{vehicle_names[bbox.class_id]} {bbox.track_id} {bbox.confidence:.2f}", 
-                    (bbox.x1, bbox.y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+def draw_bounding_box(frame: np.ndarray,  license_plates_bbox: List[BBox],license_plate_names: List[str], 
+                      vehicles_bbox: List[BBox]=None, vehicle_names: List[str]=None, ) -> np.ndarray:
+    if vehicles_bbox is not None:
+        for bbox in vehicles_bbox:
+            cv2.rectangle(frame, (bbox.x1, bbox.y1), (bbox.x2, bbox.y2), (0, 255, 0), 1)
+            cv2.putText(frame, f"{vehicle_names[bbox.class_id]} {bbox.track_id} {bbox.confidence:.2f}", 
+                        (bbox.x1, bbox.y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     for bbox in license_plates_bbox:
         cv2.rectangle(frame, (bbox.x1, bbox.y1), (bbox.x2, bbox.y2), (255, 0, 0), 2)

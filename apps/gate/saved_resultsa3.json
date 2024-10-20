@@ -1463,6 +1463,486 @@
             "plate_text": "",
             "timestamp": "2024-10-02T11:41:05.310169",
             "confidence": 0.13460174202919006
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0646\u0639 \u0668\u0661\u0660 \u0660",
+            "timestamp": "2024-10-02T23:17:29.188836",
+            "confidence": 0.3844001591205597
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0644 \u0644",
+            "timestamp": "2024-10-02T23:17:44.585134",
+            "confidence": 0.1325828582048416
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:17:55.608426",
+            "confidence": 0.2314070612192154
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0668\u06619\u0660\u060c \u0661",
+            "timestamp": "2024-10-02T23:18:04.943569",
+            "confidence": 0.4011217951774597
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:18:14.397403",
+            "confidence": 0.19642721116542816
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:18:25.515313",
+            "confidence": 0.10629454255104065
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:18:34.006302",
+            "confidence": 0.1358005255460739
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:18:44.924603",
+            "confidence": 0.15080563724040985
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:18:55.655085",
+            "confidence": 0.1051660105586052
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:19:07.472415",
+            "confidence": 0.14832061529159546
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:19:18.006419",
+            "confidence": 0.21142606437206268
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:19:30.599255",
+            "confidence": 0.1582881063222885
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:19:40.262725",
+            "confidence": 0.135530024766922
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:19:56.267443",
+            "confidence": 0.1237863078713417
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:20:07.208218",
+            "confidence": 0.12755464017391205
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:20:24.270223",
+            "confidence": 0.17770422995090485
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:22:39.829644",
+            "confidence": 0.28859463334083557
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:22:47.443134",
+            "confidence": 0.11984232813119888
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:22:57.372855",
+            "confidence": 0.13418520987033844
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:44:25.790718",
+            "confidence": 0.11118026822805405
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-02T23:44:37.569235",
+            "confidence": 0.11711622774600983
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0628\u0647",
+            "timestamp": "2024-10-03T12:38:09.950559",
+            "confidence": 0.20684538781642914
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0644\u0637\u0627\u0627",
+            "timestamp": "2024-10-03T12:38:33.927497",
+            "confidence": 0.228858083486557
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0644\u0637\u0627\u0627",
+            "timestamp": "2024-10-03T12:38:54.690017",
+            "confidence": 0.228858083486557
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0668",
+            "timestamp": "2024-10-03T12:39:05.010792",
+            "confidence": 0.2768107056617737
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0668",
+            "timestamp": "2024-10-03T12:39:22.880570",
+            "confidence": 0.2768107056617737
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0667",
+            "timestamp": "2024-10-03T12:39:30.682942",
+            "confidence": 0.41052985191345215
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:39:39.499532",
+            "confidence": 0.2754530906677246
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:39:48.372335",
+            "confidence": 0.5503199100494385
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0644\u0637 \u0627 \u0627",
+            "timestamp": "2024-10-03T12:39:56.328429",
+            "confidence": 0.4912504255771637
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:40:04.697806",
+            "confidence": 0.44182443618774414
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:40:13.436477",
+            "confidence": 0.55491703748703
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:40:21.106976",
+            "confidence": 0.5243569016456604
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:40:28.982905",
+            "confidence": 0.21638266742229462
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:40:35.599928",
+            "confidence": 0.3205035626888275
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:40:43.451213",
+            "confidence": 0.49519768357276917
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0630\u0648 \u0668\u0668\u0666\u0661",
+            "timestamp": "2024-10-03T12:40:49.650125",
+            "confidence": 0.30384859442710876
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0646\u0621 \u0661 \u066849",
+            "timestamp": "2024-10-03T12:40:56.781214",
+            "confidence": 0.16402588784694672
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0646\u0639 \u0668\u0661\u0660 \u0660",
+            "timestamp": "2024-10-03T12:41:04.488094",
+            "confidence": 0.3844001591205597
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0644 \u0644",
+            "timestamp": "2024-10-03T12:41:11.173698",
+            "confidence": 0.1325828582048416
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:41:19.076254",
+            "confidence": 0.2314070612192154
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0668\u06619\u0660\u060c \u0661",
+            "timestamp": "2024-10-03T12:41:25.315464",
+            "confidence": 0.4011217951774597
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:41:32.301332",
+            "confidence": 0.19642721116542816
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:41:39.732086",
+            "confidence": 0.10629454255104065
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:41:46.329828",
+            "confidence": 0.1358005255460739
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:41:53.995560",
+            "confidence": 0.15080563724040985
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:42:00.963321",
+            "confidence": 0.1051660105586052
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:42:07.228167",
+            "confidence": 0.14832061529159546
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:42:14.838172",
+            "confidence": 0.21142606437206268
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:42:20.929059",
+            "confidence": 0.1582881063222885
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:42:27.021631",
+            "confidence": 0.135530024766922
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:42:37.239665",
+            "confidence": 0.1237863078713417
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-03T12:42:45.198951",
+            "confidence": 0.12755464017391205
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0668 \u0667\u061b\u0665\u0662\u0668",
+            "timestamp": "2024-10-19T16:45:55.119502",
+            "confidence": 0.105087511241436
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:46:04.002198",
+            "confidence": 0.11550322920084
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0630\u0627\u0628\u0647",
+            "timestamp": "2024-10-19T16:46:17.705153",
+            "confidence": 0.2179996222257614
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0622\u0630\u0628\u0647",
+            "timestamp": "2024-10-19T16:46:26.867983",
+            "confidence": 0.11422757059335709
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0628\u0647",
+            "timestamp": "2024-10-19T16:46:35.673724",
+            "confidence": 0.20684538781642914
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0668",
+            "timestamp": "2024-10-19T16:46:44.288489",
+            "confidence": 0.2853291630744934
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0622\u0622\u0633\u0645",
+            "timestamp": "2024-10-19T16:46:52.745157",
+            "confidence": 0.2350628525018692
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0668",
+            "timestamp": "2024-10-19T16:46:59.762599",
+            "confidence": 0.2225363403558731
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0644\u0637\u0627\u0627",
+            "timestamp": "2024-10-19T16:47:08.053887",
+            "confidence": 0.228858083486557
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0668",
+            "timestamp": "2024-10-19T16:47:15.220429",
+            "confidence": 0.2768107056617737
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0667",
+            "timestamp": "2024-10-19T16:47:23.120874",
+            "confidence": 0.41052985191345215
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:47:30.527483",
+            "confidence": 0.2754530906677246
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:47:38.192790",
+            "confidence": 0.5503199100494385
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0644\u0637 \u0627 \u0627",
+            "timestamp": "2024-10-19T16:47:45.761637",
+            "confidence": 0.4912504255771637
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:47:53.430854",
+            "confidence": 0.44182443618774414
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:48:01.263493",
+            "confidence": 0.55491703748703
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:48:08.581456",
+            "confidence": 0.5243569016456604
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:48:16.880556",
+            "confidence": 0.21638266742229462
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:48:23.955649",
+            "confidence": 0.3205035626888275
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:48:32.199201",
+            "confidence": 0.49519768357276917
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0630\u0648 \u0668\u0668\u0666\u0661",
+            "timestamp": "2024-10-19T16:48:38.891702",
+            "confidence": 0.30384859442710876
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0646\u0621 \u0661 \u066849",
+            "timestamp": "2024-10-19T16:48:47.300562",
+            "confidence": 0.16402588784694672
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0646\u0639 \u0668\u0661\u0660 \u0660",
+            "timestamp": "2024-10-19T16:48:54.915841",
+            "confidence": 0.3844001591205597
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0627\u0644 \u0644",
+            "timestamp": "2024-10-19T16:49:03.609952",
+            "confidence": 0.1325828582048416
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:49:12.257708",
+            "confidence": 0.2314070612192154
+        },
+        {
+            "track_id": 0,
+            "plate_text": "\u0668\u06619\u0660\u060c \u0661",
+            "timestamp": "2024-10-19T16:49:19.236690",
+            "confidence": 0.4011217951774597
+        },
+        {
+            "track_id": 0,
+            "plate_text": "",
+            "timestamp": "2024-10-19T16:49:27.785104",
+            "confidence": 0.19642721116542816
         }
     ]
 }

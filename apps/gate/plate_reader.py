@@ -86,7 +86,10 @@ def plate_detector(source, license_plate_model, vehicle_model=None, imgsz=640, f
         license_plate_names = license_plate_results[0].names
 
         # Filter license plate bounding boxes based on vehicle bounding boxes
-        filtered_license_plates_bbox = suppress_plates_bbox(vehicles_bbox, license_plates_bbox)
+        if vehicle_model is not None:
+            filtered_license_plates_bbox = suppress_plates_bbox(vehicles_bbox, license_plates_bbox)
+        else:
+            filtered_license_plates_bbox = license_plates_bbox
 
         # Get cropped license plates (optional)
         clipped_license_plate, track_id, confidence = clip_plate(frame, filtered_license_plates_bbox)
@@ -98,7 +101,8 @@ def plate_detector(source, license_plate_model, vehicle_model=None, imgsz=640, f
             license_plate_text = None
 
         # Draw bounding boxes on the original frame
-        processed_frame = draw_bounding_box(frame, vehicles_bbox, filtered_license_plates_bbox, vehicle_names, license_plate_names)
+        # processed_frame = draw_bounding_box(frame, vehicles_bbox, filtered_license_plates_bbox, vehicle_names, license_plate_names)
+        processed_frame = draw_bounding_box(frame=frame, license_plates_bbox=filtered_license_plates_bbox,license_plate_names= license_plate_names)
 
         # Yield the processed frame, clipped license plate, text, fps, track_id, confidence, and current frame id
         print(f"Processing frame {current_frame_id}")

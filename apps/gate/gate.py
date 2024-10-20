@@ -131,7 +131,7 @@ def gate_page():
   ) in plate_detector(
       video_source,
       license_plate_model,
-      vehicle_model=vehicle_model,
+      #vehicle_model=vehicle_model,
       imgsz=640,
       focus_area=focus_area,
       start_frame_id=st.session_state['current_frame_id'],

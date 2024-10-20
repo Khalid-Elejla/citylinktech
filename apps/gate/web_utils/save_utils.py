@@ -106,31 +106,74 @@ def update_cars_data(plate_number, action, cars_data_path):
   cars_df.to_excel(cars_data_path, index=False)
 
 
-def search_car_history(plate_text,saved_json):
-      # Load the JSON data from the file
-  with open(saved_json, 'r', encoding='utf-8') as file:
-      data = json.load(file)
+# def search_car_history(plate_text,saved_json):
+#       # Load the JSON data from the file
+#   with open(saved_json, 'r', encoding='utf-8') as file:
+#       data = json.load(file)
 
-  # Initialize a list to hold matching records
-  matching_records = []
+#   # Initialize a list to hold matching records
+#   matching_records = []
 
-  # Iterate through each gate in the data
-  for gate, records in data.items():
-      # Check each record for a matching plate text
-      for record in records:
-          if record['plate_text'] == plate_text:
-              matching_records.append({
-                  'gate': gate,
-                  'track_id': record['track_id'],
-                  'plate_text': record['plate_text'],
-                  'timestamp': record['timestamp'],
-                  'confidence': record['confidence']
-              })
-  @st.dialog("car history")
-  def show_car_history():  
-    st.write(matching_records)
-  show_car_history()
-  return matching_records
+#   # Iterate through each gate in the data
+#   for gate, records in data.items():
+#       # Check each record for a matching plate text
+#       for record in records:
+#           if record['plate_text'] == plate_text:
+#               matching_records.append({
+#                   'gate': gate,
+#                   'track_id': record['track_id'],
+#                   'plate_text': record['plate_text'],
+#                   'timestamp': record['timestamp'],
+#                   'confidence': record['confidence']
+#               })
+#   @st.dialog("car history")
+#   def show_car_history():  
+#     st.write(matching_records)
+#   show_car_history()
+#   return matching_records
+
+def search_car_history(plate_text, saved_json):
+    # Load the JSON data from the file
+    with open(saved_json, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    # Initialize a list to hold matching records
+    matching_records = []
+
+    # Iterate through each gate in the data
+    for gate, records in data.items():
+        # Check each record for a matching plate text
+        for record in records:
+            if record['plate_text'] == plate_text:
+                matching_records.append({
+                    'gate': gate,
+                    'track_id': record['track_id'],
+                    'plate_text': record['plate_text'],
+                    'timestamp': record['timestamp'],
+                    'confidence': record['confidence']
+                })
+    
+    if matching_records:
+        # Use a dialog to show the results
+        @st.dialog("Car History")
+        def show_car_history():
+            st.write(f"Results for plate: {plate_text}")
+            
+            # Use a table to display the data more clearly
+            st.table(matching_records)
+            
+            # Optionally, display as JSON for more detailed information
+            # st.json(matching_records)
+            
+            # Additional friendly message
+            st.success(f"Found {len(matching_records)} record(s).")
+        
+        show_car_history()
+    else:
+        st.error("No records found for this plate.")
+
+    return matching_records
+
 # # Function to update the cars data
 # def update_cars_data(plate_number, action, cars_data_path):
 #   # Load the existing cars data
